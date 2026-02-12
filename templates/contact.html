@@ -1,0 +1,54 @@
+{% extends "base.html" %}
+{% set title = "Contact | HealthRoster Automation" %}
+
+{% block content %}
+  <section class="page-hero">
+    <div class="container">
+      <span class="eyebrow">Contact</span>
+      <h1>Book a free demo</h1>
+      <p class="lead">
+        Tell us your details and we will set up a walkthrough of the automation.
+      </p>
+    </div>
+  </section>
+
+  <section class="section">
+    <div class="container contact-grid">
+      <form class="contact-form">
+        <label>
+          Full Name
+          <input type="text" placeholder="Jane Smith" />
+        </label>
+        <label>
+          Work Email
+          <input type="email" placeholder="jane@nhs.uk" />
+        </label>
+        <label>
+          Trust or Hospital
+          <input type="text" placeholder="NHS Trust Name" />
+        </label>
+        <label>
+          Message
+          <textarea rows="5" placeholder="Share your preferred grade and shift type."></textarea>
+        </label>
+        <button class="btn btn-primary" type="submit">Request Demo</button>
+        <p class="form-note">
+          We will never share your data. Credentials are collected only after demo approval.
+        </p>
+      </form>
+      <div class="contact-card">
+        <h2>Contact Details</h2>
+        <p>Email: hello@healthrosterautomation.co.uk</p>
+        <p>Phone: 020 1234 5678</p>
+        <p>Hours: Monday to Friday, 9am–6pm</p>
+        <div class="security-box">
+          <h3>Security Disclaimer</h3>
+          <p>
+            Credentials are encrypted in transit and stored securely for automation.
+            We never share them with third parties.
+          </p>
+        </div>
+      </div>
+    </div>
+  </section>
+{% endblock %}

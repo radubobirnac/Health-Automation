@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>{{ title if title else "HealthRoster Automation" }}</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}" />
+  </head>
+  <body>
+    <header class="site-header">
+      <div class="container nav-wrap">
+        <div class="brand">
+          <div class="logo">HR</div>
+          <div>
+            <div class="brand-title">HealthRoster Automation</div>
+            <div class="brand-sub">NHS Shift Booking</div>
+          </div>
+        </div>
+        <nav class="nav">
+          <a href="{{ url_for('home') }}">Home</a>
+          <a href="{{ url_for('about') }}">About</a>
+          <a href="{{ url_for('contact') }}">Contact</a>
+        </nav>
+        <a class="btn btn-primary" href="{{ url_for('contact') }}">Book a Free Demo</a>
+      </div>
+    </header>
+
+    <main>
+      {% block content %}{% endblock %}
+    </main>
+
+    <footer class="site-footer">
+      <div class="container footer-grid">
+        <div>
+          <div class="footer-title">HealthRoster Automation</div>
+          <p>
+            Automated shift booking for NHS Trust nurses. We simplify and secure the
+            HealthRoster booking process so you can focus on patient care.
+          </p>
+        </div>
+        <div>
+          <div class="footer-title">Contact</div>
+          <p>Email: hello@healthrosterautomation.co.uk</p>
+          <p>Phone: 020 1234 5678</p>
+        </div>
+        <div>
+          <div class="footer-title">Security Disclaimer</div>
+          <p>
+            We never share credentials with third parties. Credentials are encrypted
+            in transit and stored securely for automation only.
+          </p>
+        </div>
+      </div>
+      <div class="container footer-bottom">
+        <span>© 2026 HealthRoster Automation. All rights reserved.</span>
+      </div>
+    </footer>
+  </body>
+</html>
