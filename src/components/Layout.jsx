@@ -37,7 +37,7 @@ export default function Layout({ children }) {
           <div>
             <div className="footer-title">Contact</div>
             <p>Email: radubobirnac@gmail.com</p>
-            <p>Phone: 020 1234 5678</p>
+            <p>Phone: +1 (503) 820-9110</p>
           </div>
           <div>
             <div className="footer-title">Security Disclaimer</div>

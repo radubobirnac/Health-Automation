@@ -105,7 +105,7 @@ export default function Contact() {
               {status.state === "sending" ? "Sending..." : "Request Demo"}
             </button>
             <p className="form-note">
-              Requests are sent directly to radubobirnac@gmail.com and virinchiaddanki@gmail.com.
+              
             </p>
             <p className="form-note">
               We will never share your data. Credentials are collected only after demo approval.
@@ -118,8 +118,8 @@ export default function Contact() {
           </form>
           <div className="contact-card">
             <h2>Contact Details</h2>
-            <p>Email: hello@healthrosterautomation.co.uk</p>
-            <p>Phone: 020 1234 5678</p>
+            <p>Email: bobirnacr@gmail.com</p>
+            <p>Phone: +1 (503) 820-9110</p>
             <p>Hours: Monday to Friday, 9am-6pm</p>
             <div className="security-box">
               <h3>Security Disclaimer</h3>
