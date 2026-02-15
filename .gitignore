@@ -3,6 +3,6 @@ dist/
 .netlify/
 .env
 .env.*
+!.env.example
 .DS_Store
 *.log
-.env.example

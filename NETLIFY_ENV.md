@@ -1,32 +1,30 @@
 # Netlify Environment Variables
 
-Add the following environment variables in Netlify:
+Set these variables in Netlify site settings:
 
-- SMTP_HOST (e.g., smtp.gmail.com)
-- SMTP_PORT (e.g., 465 for SSL, 587 for TLS)
-- SMTP_USER (your SMTP username or email)
-- SMTP_PASS (app password or SMTP password)
-- SMTP_FROM (optional, defaults to SMTP_USER)
-- SMTP_SECURE (true for port 465, otherwise false)
+- `SMTP_HOST` (example: `smtp.gmail.com`)
+- `SMTP_PORT` (example: `465` for SSL, `587` for TLS)
+- `SMTP_USER` (SMTP username/email)
+- `SMTP_PASS` (app password or SMTP password)
+- `SMTP_FROM` (optional, defaults to `SMTP_USER`)
+- `SMTP_SECURE` (optional, `true` for 465, otherwise `false`)
 
 Local development:
-- Copy .env.example to .env and fill in the values.
-- Do not commit .env.
+
+- Copy `.env.example` to `.env` and set values.
+- Do not commit `.env`.
 
 # Netlify Deploy Settings
 
-Use these settings when creating the site on Netlify:
+Use these settings when creating/importing the site on Netlify:
 
-- Team: bobirnacrs team
-- Deploy user: radubobirnac
-- Branch to deploy: main
-- Base directory: (leave empty)
-- Build command: npm run build
-- Publish directory: dist
-- Functions directory: netlify/functions
+- Repo: `radubobirnac/Health-Automation`
+- Branch to deploy: `main`
+- Base directory: leave empty
+- Build command: `npm run build`
+- Publish directory: `dist`
+- Functions directory: `netlify/functions`
 
-Site details:
-- Project name: healthroaster-automation
-- Site URL: https://healthroaster-automation.netlify.app
+If the preferred site name is unavailable, choose a unique variant.
 
-Note: If the project name is not available, choose a unique variant and update the site URL accordingly.
+See `DEPLOYMENT_WORKFLOW.md` for the full end-to-end process.
