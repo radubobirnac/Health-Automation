@@ -16,10 +16,16 @@ export default function Layout({ children }) {
             <Link to="/">Home</Link>
             <Link to="/about">About</Link>
             <Link to="/contact">Contact</Link>
+            <Link to="/login">Client Portal</Link>
           </nav>
-          <Link className="btn btn-primary" to="/contact">
-            Book a Free Demo
-          </Link>
+          <div className="nav-actions">
+            <Link className="btn btn-outline" to="/contact">
+              Book a Free Demo
+            </Link>
+            <Link className="btn btn-primary" to="/login">
+              Sign in
+            </Link>
+          </div>
         </div>
       </header>
 

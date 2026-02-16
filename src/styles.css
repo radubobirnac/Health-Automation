@@ -25,10 +25,15 @@ body {
 }
 
 .container {
-  width: min(1120px, 90%);
+  width: min(1320px, 94%);
   margin: 0 auto;
 }
 
+.dashboard-container {
+  width: 96%;
+  max-width: 1600px;
+  margin: 0 auto;
+}
 .site-header {
   position: sticky;
   top: 0;
@@ -76,6 +81,12 @@ body {
 .nav {
   display: flex;
   gap: 18px;
+}
+
+.nav-actions {
+  display: flex;
+  gap: 12px;
+  align-items: center;
 }
 
 .nav a {
@@ -337,6 +348,557 @@ body {
   gap: 12px;
 }
 
+.auth-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 40px;
+  align-items: start;
+}
+
+.auth-card {
+  display: grid;
+  gap: 16px;
+  background: var(--white);
+  padding: 30px;
+  border-radius: 20px;
+  border: 1px solid var(--gray-300);
+  box-shadow: var(--shadow);
+}
+
+.auth-card label {
+  display: grid;
+  gap: 8px;
+  font-weight: 600;
+}
+
+.auth-card input {
+  padding: 12px 14px;
+  border-radius: 12px;
+  border: 1px solid var(--gray-300);
+  font-family: inherit;
+}
+
+.auth-aside {
+  background: var(--green-100);
+  border-radius: 20px;
+  padding: 30px;
+  border: 1px solid rgba(108, 199, 185, 0.5);
+  display: grid;
+  gap: 16px;
+}
+
+.dashboard-hero {
+  padding: 60px 0 40px;
+  background: linear-gradient(135deg, rgba(31, 111, 178, 0.1), rgba(108, 199, 185, 0.15));
+}
+
+.dashboard-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 24px;
+  flex-wrap: wrap;
+}
+
+.status-pill {
+  background: var(--white);
+  border-radius: 999px;
+  padding: 10px 18px;
+  border: 1px solid var(--gray-300);
+  font-weight: 600;
+}
+
+.sheet-tabs {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-bottom: 24px;
+}
+
+.sheet-tab {
+  border: 1px solid var(--gray-300);
+  background: var(--white);
+  border-radius: 999px;
+  padding: 10px 18px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.sheet-tab.active {
+  background: var(--blue-500);
+  color: var(--white);
+  border-color: transparent;
+}
+
+.dashboard-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 3fr) minmax(0, 1.25fr);
+  gap: 24px;
+  align-items: start;
+  padding-left: 64px;
+}
+
+.dashboard-aside {
+  display: grid;
+  gap: 20px;
+}
+
+.sheet-controls {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 16px;
+  margin-bottom: 16px;
+  align-items: end;
+}
+
+.sheet-field {
+  display: grid;
+  gap: 6px;
+  font-weight: 600;
+}
+
+.sheet-field input {
+  padding: 10px 12px;
+  border-radius: 10px;
+  border: 1px solid var(--gray-300);
+  font-family: inherit;
+}
+
+.sheet-field input[type="file"] {
+  padding: 6px 8px;
+}
+
+.sheet-import {
+  grid-column: span 2;
+}
+
+.scheduler-card {
+  background: var(--white);
+  border-radius: 20px;
+  border: 1px solid var(--gray-300);
+  padding: 12px;
+  box-shadow: var(--shadow);
+}
+
+.scheduler-table-wrapper {
+  overflow-x: auto;
+  overflow-y: auto;
+  max-height: 620px;
+  border-radius: 14px;
+  border: 1px solid var(--gray-300);
+  background: var(--white);
+}
+
+.scheduler-table {
+  width: max-content;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+
+.scheduler-table th,
+.scheduler-table td {
+  border-bottom: 1px solid var(--gray-300);
+  border-right: 1px solid var(--gray-300);
+  padding: 4px 6px;
+  text-align: left;
+  background: var(--white);
+}
+
+.scheduler-table thead th {
+  position: sticky;
+  top: 0;
+  background: var(--gray-100);
+  z-index: 3;
+  font-weight: 700;
+}
+
+.header-spacer {
+  display: block;
+  height: 18px;
+}
+
+.sticky-col {
+  position: sticky;
+  left: 0;
+  z-index: 6;
+  background: var(--white);
+  box-shadow: 6px 0 0 rgba(12, 37, 68, 0.04);
+}
+
+.scheduler-table thead .sticky-col {
+  z-index: 7;
+}
+
+.col-locum {
+  width: 140px;
+  min-width: 140px;
+  left: 0;
+}
+
+.col-client {
+  width: 110px;
+  min-width: 110px;
+  left: 140px;
+}
+
+.col-search {
+  width: 80px;
+  min-width: 80px;
+  left: 250px;
+}
+
+.col-specialty {
+  width: 90px;
+  min-width: 90px;
+  left: 330px;
+}
+
+.col-keyword {
+  width: 120px;
+  min-width: 120px;
+  left: 420px;
+}
+
+.col-gender {
+  width: 80px;
+  min-width: 80px;
+  left: 540px;
+}
+
+.col-time {
+  width: 90px;
+  min-width: 90px;
+  left: 620px;
+}
+
+.date-col {
+  width: 65px;
+  min-width: 65px;
+  text-align: center;
+}
+
+.weekday-header {
+  font-weight: 700;
+}
+
+.date-header {
+  font-size: 0.72rem;
+  color: var(--gray-600);
+}
+
+.cell-stack {
+  display: grid;
+  gap: 6px;
+}
+
+.cell-value {
+  background: var(--gray-100);
+  border-radius: 8px;
+  padding: 4px 6px;
+  min-height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 600;
+}
+
+.scheduler-table input {
+  width: 100%;
+  border: 1px solid transparent;
+  background: transparent;
+  font-family: inherit;
+  padding: 4px 6px;
+  border-radius: 8px;
+}
+
+.scheduler-table input:focus {
+  outline: 2px solid rgba(31, 111, 178, 0.2);
+  border-color: rgba(31, 111, 178, 0.35);
+  background: var(--white);
+}
+
+.cell-stack select {
+  width: 100%;
+  padding: 2px 4px;
+  border-radius: 8px;
+  border: 1px solid var(--gray-300);
+  font-family: inherit;
+}
+
+.cell-actions {
+  display: flex;
+  gap: 10px;
+  justify-content: center;
+}
+
+.cell-link {
+  background: none;
+  border: none;
+  color: var(--blue-500);
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.sheet-actions-row {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 12px;
+  flex-wrap: wrap;
+}
+
+.logs-placeholder {
+  border: 1px dashed var(--gray-300);
+  border-radius: 14px;
+  padding: 40px;
+  text-align: center;
+  color: var(--gray-600);
+  background: var(--gray-100);
+}
+
+.modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(12, 37, 68, 0.45);
+  display: grid;
+  place-items: center;
+  z-index: 50;
+  padding: 24px;
+}
+
+.modal-card {
+  background: var(--white);
+  border-radius: 20px;
+  padding: 20px;
+  width: min(520px, 90%);
+  box-shadow: var(--shadow);
+}
+
+.modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.modal-close {
+  border: 1px solid var(--gray-300);
+  background: var(--white);
+  border-radius: 999px;
+  padding: 6px 12px;
+  cursor: pointer;
+  font-weight: 600;
+}
+
+.history-list {
+  display: grid;
+  gap: 12px;
+  padding-left: 20px;
+}
+
+.history-meta {
+  font-size: 0.85rem;
+  color: var(--gray-600);
+}
+
+.sheet-card {
+  background: var(--white);
+  border-radius: 20px;
+  border: 1px solid var(--gray-300);
+  padding: 18px;
+  box-shadow: var(--shadow);
+}
+
+.sheet-actions {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.sheet-meta {
+  color: var(--gray-600);
+  font-size: 0.9rem;
+}
+
+.sheet-table-wrapper {
+  overflow: auto;
+  max-height: 520px;
+  border-radius: 14px;
+  border: 1px solid var(--gray-300);
+}
+
+.sheet-table {
+  width: 100%;
+  border-collapse: collapse;
+  min-width: 1180px;
+}
+
+.sheet-table th,
+.sheet-table td {
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--gray-300);
+  text-align: left;
+  vertical-align: top;
+}
+
+.sheet-table th {
+  position: sticky;
+  top: 0;
+  background: var(--gray-100);
+  font-weight: 700;
+  z-index: 1;
+}
+
+.sheet-table input {
+  width: 100%;
+  border: 1px solid transparent;
+  background: transparent;
+  font-family: inherit;
+  padding: 8px 10px;
+  border-radius: 10px;
+}
+
+.sheet-table input:focus {
+  outline: 2px solid rgba(31, 111, 178, 0.2);
+  border-color: rgba(31, 111, 178, 0.35);
+  background: var(--white);
+}
+
+.cell-invalid {
+  background: rgba(255, 122, 89, 0.18);
+  border-color: rgba(255, 122, 89, 0.6);
+}
+
+.multi-select {
+  position: relative;
+}
+
+.single-select {
+  position: relative;
+}
+
+.single-select-input {
+  width: 100%;
+  padding: 8px 10px;
+  border-radius: 10px;
+  border: 1px solid var(--gray-300);
+  background: var(--white);
+  font-family: inherit;
+}
+
+.calendar-card {
+  background: var(--white);
+  border-radius: 20px;
+  border: 1px solid var(--gray-300);
+  padding: 18px;
+  box-shadow: var(--shadow);
+}
+
+.calendar-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+  gap: 12px;
+}
+
+.calendar-sub {
+  color: var(--gray-600);
+  font-size: 0.9rem;
+}
+
+.calendar-nav {
+  display: flex;
+  gap: 8px;
+}
+
+.calendar-nav button {
+  border: 1px solid var(--gray-300);
+  background: var(--white);
+  border-radius: 999px;
+  padding: 6px 12px;
+  cursor: pointer;
+  font-weight: 600;
+}
+
+.calendar-multi {
+  display: grid;
+  gap: 16px;
+}
+
+.calendar-month {
+  border: 1px solid var(--gray-300);
+  border-radius: 16px;
+  padding: 12px;
+  background: var(--gray-100);
+}
+
+.calendar-month-title {
+  font-weight: 700;
+  margin-bottom: 8px;
+}
+
+.calendar-grid {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.calendar-cell {
+  min-height: 68px;
+  border-radius: 12px;
+  background: var(--gray-100);
+  padding: 8px;
+  font-size: 0.85rem;
+  display: grid;
+  gap: 4px;
+  cursor: pointer;
+}
+
+.calendar-day {
+  background: transparent;
+  font-weight: 700;
+  min-height: 24px;
+}
+
+.calendar-date {
+  font-weight: 700;
+}
+
+.calendar-count {
+  color: var(--blue-700);
+  font-weight: 600;
+}
+
+.calendar-selected {
+  background: rgba(31, 111, 178, 0.2);
+  border: 1px solid rgba(31, 111, 178, 0.4);
+}
+
+.calendar-select {
+  margin-top: 6px;
+}
+
+.calendar-select select {
+  width: 100%;
+  border-radius: 10px;
+  border: 1px solid var(--gray-300);
+  padding: 6px 8px;
+  font-family: inherit;
+}
+
+.info-card {
+  background: var(--white);
+  border-radius: 20px;
+  border: 1px solid var(--gray-300);
+  padding: 18px;
+  display: grid;
+  gap: 10px;
+}
+
 .security-box {
   margin-top: 14px;
   background: var(--gray-100);
@@ -373,7 +935,9 @@ body {
 @media (max-width: 900px) {
   .hero-grid,
   .demo-grid,
-  .contact-grid {
+  .contact-grid,
+  .auth-grid,
+  .dashboard-grid {
     grid-template-columns: 1fr;
   }
 
@@ -386,6 +950,12 @@ body {
   .nav-wrap {
     flex-direction: column;
     align-items: flex-start;
+  }
+
+  .nav-actions {
+    width: 100%;
+    justify-content: flex-start;
+    flex-wrap: wrap;
   }
 
   .cta-card {
