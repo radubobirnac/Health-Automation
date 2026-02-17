@@ -94,13 +94,6 @@ export default function Dashboard() {
 
   useEffect(() => {
     if (!activeSheetId || !startDate || !endDate) return;
-    const active = sheets.find((sheet) => sheet.sheet_id === activeSheetId);
-    if (active && (active.name || "").toLowerCase() === "logs") {
-      setNurses(padRows([]));
-      setShifts({});
-      return;
-    }
-
     const fetchSchedule = async () => {
       setStatus({ state: "loading", message: "Loading schedule..." });
       try {
@@ -299,7 +292,10 @@ export default function Dashboard() {
 
   const handleNurseCommit = (nurse) => {
     if (!nurse) return;
-    saveNurses([nurse]);
+    const current = nurses.find((row) => row.id === nurse.id);
+    if (current) {
+      saveNurses([current]);
+    }
   };
 
   const handleBulkNurseCommit = ({ updates, rowIndices }) => {
@@ -376,7 +372,6 @@ export default function Dashboard() {
   const handleRename = async (overrideName) => {
     if (!activeSheetId) return;
     const active = sheets.find((sheet) => sheet.sheet_id === activeSheetId);
-    if (active && (active.name || "").toLowerCase() === "logs") return;
     const trimmed = (overrideName ?? sheetName).trim();
     if (!trimmed) return;
     if (active && (active.name || "").trim() === trimmed) return;
@@ -402,7 +397,8 @@ export default function Dashboard() {
   };
 
   const activeSheet = sheets.find((sheet) => sheet.sheet_id === activeSheetId);
-  const isLogsSheet = (activeSheet?.name || "").toLowerCase() === "logs";
+  const isLogsSheet =
+    activeSheet?.sheet_id === "logs" || (activeSheet?.name || "").toLowerCase() === "logs";
 
   return (
     <>
@@ -461,7 +457,6 @@ export default function Dashboard() {
                         handleRename(event.target.value);
                       }
                     }}
-                    disabled={isLogsSheet}
                   />
                 </div>
                 <div className="sheet-field">
@@ -485,7 +480,6 @@ export default function Dashboard() {
                     type="date"
                     value={startDate}
                     onChange={(event) => setStartDate(event.target.value)}
-                    disabled={isLogsSheet}
                   />
                 </div>
                 <div className="sheet-field">
@@ -494,7 +488,6 @@ export default function Dashboard() {
                     type="date"
                     value={endDate}
                     onChange={(event) => setEndDate(event.target.value)}
-                    disabled={isLogsSheet}
                   />
                 </div>
               </div>
@@ -514,28 +507,22 @@ export default function Dashboard() {
                   Add column (next day)
                 </button>
               </div>
-              {isLogsSheet ? (
-                <div className="logs-placeholder">
-                  Logs sheet is read-only and reserved for audit activity.
-                </div>
-              ) : (
-                <SchedulerGrid
-                  nurses={nurses}
-                  dates={dates}
-                  shifts={shifts}
-                  shiftTypes={SHIFT_TYPES}
-                  onShiftChange={handleShiftChange}
-                  onBulkShiftChange={handleBulkShiftChange}
-                  onNurseChange={handleNurseChange}
-                  onBulkNurseChange={handleBulkNurseChange}
-                  onNurseCommit={handleNurseCommit}
-                  onBulkNurseCommit={handleBulkNurseCommit}
-                  selectedRowIds={selectedRowIds}
-                  onToggleRow={handleToggleRow}
-                  onToggleAllRows={handleToggleAllRows}
-                  onDeleteRow={handleDeleteRow}
-                />
-              )}
+              <SchedulerGrid
+                nurses={nurses}
+                dates={dates}
+                shifts={shifts}
+                shiftTypes={SHIFT_TYPES}
+                onShiftChange={handleShiftChange}
+                onBulkShiftChange={handleBulkShiftChange}
+                onNurseChange={handleNurseChange}
+                onBulkNurseChange={handleBulkNurseChange}
+                onNurseCommit={handleNurseCommit}
+                onBulkNurseCommit={handleBulkNurseCommit}
+                selectedRowIds={selectedRowIds}
+                onToggleRow={handleToggleRow}
+                onToggleAllRows={handleToggleAllRows}
+                onDeleteRow={handleDeleteRow}
+              />
             </div>
           </div>
         </div>

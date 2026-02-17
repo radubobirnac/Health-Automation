@@ -93,8 +93,14 @@ export const handleApiRequest = ({ method, path, query = {}, body }) => {
         client_name: "",
         created_at: new Date().toISOString()
       });
-      saveDb(db);
     }
+    if (!db.nursesBySheet.logs) {
+      db.nursesBySheet.logs = [];
+    }
+    if (!db.shiftsBySheet.logs) {
+      db.shiftsBySheet.logs = [];
+    }
+    saveDb(db);
   };
 
   if (upperMethod === "OPTIONS") {
@@ -257,7 +263,13 @@ export const createViteMiddleware = () => {
     const url = new URL(req.url || "/", "http://localhost");
     const path = url.pathname;
 
-    if (!(path.startsWith("/sheets") || path.startsWith("/schedule"))) {
+    if (
+      !(
+        path.startsWith("/sheets") ||
+        path.startsWith("/schedule") ||
+        path.startsWith("/nurses")
+      )
+    ) {
       next();
       return;
     }
