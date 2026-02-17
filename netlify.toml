@@ -4,6 +4,26 @@
   functions = "netlify/functions"
 
 [[redirects]]
+  from = "/sheets"
+  to = "/.netlify/functions/api/sheets"
+  status = 200
+
+[[redirects]]
+  from = "/sheets/*"
+  to = "/.netlify/functions/api/sheets/:splat"
+  status = 200
+
+[[redirects]]
+  from = "/schedule"
+  to = "/.netlify/functions/api/schedule"
+  status = 200
+
+[[redirects]]
+  from = "/schedule/*"
+  to = "/.netlify/functions/api/schedule/:splat"
+  status = 200
+
+[[redirects]]
   from = "/*"
   to = "/index.html"
   status = 200

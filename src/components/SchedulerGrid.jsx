@@ -24,7 +24,13 @@ export default function SchedulerGrid({
   onShiftChange,
   onBulkShiftChange,
   onNurseChange,
-  onBulkNurseChange
+  onBulkNurseChange,
+  selectedRowIds,
+  onToggleRow,
+  onToggleAllRows,
+  onDeleteRow,
+  onNurseCommit,
+  onBulkNurseCommit
 }) {
   const dateKeys = useMemo(
     () => dates.map((date) => date.toISOString().slice(0, 10)),
@@ -57,19 +63,25 @@ export default function SchedulerGrid({
     const lines = text.replace(/\r/g, "").split("\n").filter(Boolean);
     if (lines.length === 0) return;
     const updates = [];
+    const affectedRows = new Set();
     lines.forEach((line, rowOffset) => {
       const values = line.split("\t");
       values.forEach((value, colOffset) => {
         const column = LEFT_COLUMNS[colIndex + colOffset];
         if (!column) return;
+        const targetRowIndex = rowIndex + rowOffset;
         updates.push({
-          rowIndex: rowIndex + rowOffset,
+          rowIndex: targetRowIndex,
           key: column.key,
           value: value.trim()
         });
+        affectedRows.add(targetRowIndex);
       });
     });
     onBulkNurseChange(updates);
+    if (onBulkNurseCommit) {
+      onBulkNurseCommit({ updates, rowIndices: Array.from(affectedRows) });
+    }
   };
 
   return (
@@ -78,6 +90,14 @@ export default function SchedulerGrid({
         <table className="scheduler-table">
           <thead>
             <tr>
+              <th className="sticky-col col-select">
+                <input
+                  type="checkbox"
+                  checked={nurses.length > 0 && selectedRowIds?.length === nurses.length}
+                  onChange={() => onToggleAllRows?.()}
+                  aria-label="Select all rows"
+                />
+              </th>
               {LEFT_COLUMNS.map((col) => (
                 <th key={col.key} className={`sticky-col ${col.className}`}>
                   {col.label}
@@ -88,8 +108,12 @@ export default function SchedulerGrid({
                   {formatWeekday(date)}
                 </th>
               ))}
+              <th className="row-actions-header">Actions</th>
             </tr>
             <tr>
+              <th className="sticky-col col-select">
+                <span className="header-spacer" />
+              </th>
               {LEFT_COLUMNS.map((col) => (
                 <th key={`${col.key}-spacer`} className={`sticky-col ${col.className}`}>
                   <span className="header-spacer" />
@@ -100,11 +124,22 @@ export default function SchedulerGrid({
                   {formatDateLabel(date)}
                 </th>
               ))}
+              <th className="row-actions-header">
+                <span className="header-spacer" />
+              </th>
             </tr>
           </thead>
           <tbody>
             {nurses.map((nurse, rowIndex) => (
               <tr key={nurse.id}>
+                <td className="sticky-col col-select">
+                  <input
+                    type="checkbox"
+                    checked={selectedRowIds?.includes(nurse.id) ?? false}
+                    onChange={() => onToggleRow?.(nurse.id)}
+                    aria-label={`Select row ${rowIndex + 1}`}
+                  />
+                </td>
                 {LEFT_COLUMNS.map((col, colIndex) => (
                   <td key={`${nurse.id}-${col.key}`} className={`sticky-col ${col.className}`}>
                     <input
@@ -113,6 +148,7 @@ export default function SchedulerGrid({
                       onChange={(event) =>
                         onNurseChange?.(nurse.id, col.key, event.target.value)
                       }
+                      onBlur={() => onNurseCommit?.(nurse)}
                       onPaste={(event) => {
                         const pasteText = event.clipboardData.getData("text");
                         if (pasteText.includes("\n") || pasteText.includes("\t")) {
@@ -164,6 +200,15 @@ export default function SchedulerGrid({
                     </td>
                   );
                 })}
+                <td className="row-actions-cell">
+                  <button
+                    type="button"
+                    className="btn btn-outline row-delete-btn"
+                    onClick={() => onDeleteRow?.(nurse.id)}
+                  >
+                    Delete row
+                  </button>
+                </td>
               </tr>
             ))}
           </tbody>

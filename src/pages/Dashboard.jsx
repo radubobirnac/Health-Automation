@@ -39,6 +39,7 @@ export default function Dashboard() {
   const [activeSheetId, setActiveSheetId] = useState(null);
   const [sheetName, setSheetName] = useState("");
   const [newSheetName, setNewSheetName] = useState("");
+  const [selectedRowIds, setSelectedRowIds] = useState([]);
   const [status, setStatus] = useState({ state: "loading", message: "Loading data..." });
   const [nurses, setNurses] = useState([]);
   const [shifts, setShifts] = useState({});
@@ -126,6 +127,10 @@ export default function Dashboard() {
     fetchSchedule();
   }, [activeSheetId, startDate, endDate]);
 
+  useEffect(() => {
+    setSelectedRowIds([]);
+  }, [activeSheetId]);
+
   const dates = useMemo(() => {
     if (!startDate || !endDate) return [];
     return buildDateRange(new Date(startDate), new Date(endDate));
@@ -179,21 +184,20 @@ export default function Dashboard() {
   };
 
   const handleAddRow = () => {
+    const newRow = {
+      id: `row-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
+      locum_name: "",
+      client: "",
+      search_firstname: "",
+      specialty: "",
+      keyword: "",
+      gender: "",
+      time: ""
+    };
     setNurses((prev) =>
-      padRows([
-        ...prev,
-        {
-          id: `temp-${Date.now()}`,
-          locum_name: "",
-          client: "",
-          search_firstname: "",
-          specialty: "",
-          keyword: "",
-          gender: "",
-          time: ""
-        }
-      ])
+      padRows([...prev, newRow])
     );
+    saveNurses([newRow]);
   };
 
   const handleAddColumn = () => {
@@ -203,13 +207,34 @@ export default function Dashboard() {
   };
 
   const handleNurseChange = (nurseId, key, value) => {
+    let updatedRow;
     setNurses((prev) =>
-      prev.map((nurse) => (nurse.id === nurseId ? { ...nurse, [key]: value } : nurse))
+      prev.map((nurse) => {
+        if (nurse.id !== nurseId) return nurse;
+        updatedRow = { ...nurse, [key]: value };
+        return updatedRow;
+      })
     );
+    if (updatedRow) {
+      saveNurses([updatedRow]);
+    }
   };
 
-  const handleCreateSheet = async () => {
-    const trimmed = newSheetName.trim();
+  const saveNurses = async (rows) => {
+    if (!activeSheetId || !rows || rows.length === 0) return;
+    try {
+      await fetch("/nurses/upsert", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ sheet_id: activeSheetId, nurses: rows })
+      });
+    } catch (error) {
+      setStatus({ state: "error", message: "Failed to save row updates." });
+    }
+  };
+
+  const handleCreateSheet = async (overrideName) => {
+    const trimmed = (overrideName ?? newSheetName).trim();
     if (!trimmed) return;
     try {
       const response = await fetch("/sheets/create", {
@@ -272,15 +297,94 @@ export default function Dashboard() {
     });
   };
 
-  const handleRename = async () => {
+  const handleNurseCommit = (nurse) => {
+    if (!nurse) return;
+    saveNurses([nurse]);
+  };
+
+  const handleBulkNurseCommit = ({ updates, rowIndices }) => {
+    if (!updates?.length || !rowIndices?.length) return;
+    let updatedRows = [];
+    setNurses((prev) => {
+      const next = [...prev];
+      const affected = new Set(rowIndices);
+      updates.forEach((update) => {
+        const rowIndex = update.rowIndex;
+        if (!next[rowIndex]) return;
+        next[rowIndex] = { ...next[rowIndex], [update.key]: update.value };
+        affected.add(rowIndex);
+      });
+      updatedRows = Array.from(affected)
+        .map((index) => next[index])
+        .filter(Boolean);
+      return next;
+    });
+    saveNurses(updatedRows);
+  };
+
+  const handleToggleRow = (rowId) => {
+    setSelectedRowIds((prev) => {
+      if (prev.includes(rowId)) {
+        return prev.filter((id) => id !== rowId);
+      }
+      return [...prev, rowId];
+    });
+  };
+
+  const handleToggleAllRows = () => {
+    setSelectedRowIds((prev) => {
+      if (prev.length === nurses.length) {
+        return [];
+      }
+      return nurses.map((nurse) => nurse.id);
+    });
+  };
+
+  const deleteRows = async (rowIds) => {
+    if (!rowIds.length) return;
+    setNurses((prev) => padRows(prev.filter((nurse) => !rowIds.includes(nurse.id))));
+    setShifts((prev) => {
+      const next = {};
+      Object.entries(prev).forEach(([key, value]) => {
+        const [nurseId] = key.split("_");
+        if (!rowIds.includes(nurseId)) {
+          next[key] = value;
+        }
+      });
+      return next;
+    });
+    setSelectedRowIds([]);
+    try {
+      await fetch("/nurses/delete", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ sheet_id: activeSheetId, nurse_ids: rowIds })
+      });
+    } catch (error) {
+      setStatus({ state: "error", message: "Failed to delete rows." });
+    }
+  };
+
+  const handleDeleteSelectedRows = () => {
+    deleteRows(selectedRowIds);
+  };
+
+  const handleDeleteRow = (rowId) => {
+    deleteRows([rowId]);
+  };
+
+  const handleRename = async (overrideName) => {
     if (!activeSheetId) return;
     const active = sheets.find((sheet) => sheet.sheet_id === activeSheetId);
     if (active && (active.name || "").toLowerCase() === "logs") return;
+    const trimmed = (overrideName ?? sheetName).trim();
+    if (!trimmed) return;
+    if (active && (active.name || "").trim() === trimmed) return;
     try {
       const response = await fetch("/sheets/rename", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ sheet_id: activeSheetId, name: sheetName })
+        body: JSON.stringify({ sheet_id: activeSheetId, name: trimmed })
       });
       if (!response.ok) {
         throw new Error("Rename failed");
@@ -291,6 +395,7 @@ export default function Dashboard() {
           sheet.sheet_id === payload.sheet_id ? { ...sheet, name: payload.name } : sheet
         )
       );
+      setSheetName(payload.name);
     } catch (error) {
       setStatus({ state: "error", message: "Rename failed." });
     }
@@ -302,7 +407,7 @@ export default function Dashboard() {
   return (
     <>
       <section className="dashboard-hero">
-        <div className="container dashboard-header">
+        <div className="container dashboard-header dashboard-container">
           <div>
             <span className="eyebrow">Client Workspace</span>
             <h1>Shift Monitoring Sheets</h1>
@@ -349,11 +454,11 @@ export default function Dashboard() {
                     type="text"
                     value={sheetName}
                     onChange={(event) => setSheetName(event.target.value)}
-                    onBlur={handleRename}
+                    onBlur={(event) => handleRename(event.target.value)}
                     onKeyDown={(event) => {
                       if (event.key === "Enter") {
                         event.preventDefault();
-                        handleRename();
+                        handleRename(event.target.value);
                       }
                     }}
                     disabled={isLogsSheet}
@@ -369,7 +474,7 @@ export default function Dashboard() {
                     onKeyDown={(event) => {
                       if (event.key === "Enter") {
                         event.preventDefault();
-                        handleCreateSheet();
+                        handleCreateSheet(event.target.value);
                       }
                     }}
                   />
@@ -397,6 +502,14 @@ export default function Dashboard() {
                 <button className="btn btn-outline" type="button" onClick={handleAddRow}>
                   Add row
                 </button>
+                <button
+                  className="btn btn-outline"
+                  type="button"
+                  onClick={handleDeleteSelectedRows}
+                  disabled={!selectedRowIds.length}
+                >
+                  Delete selected
+                </button>
                 <button className="btn btn-outline" type="button" onClick={handleAddColumn}>
                   Add column (next day)
                 </button>
@@ -415,6 +528,12 @@ export default function Dashboard() {
                   onBulkShiftChange={handleBulkShiftChange}
                   onNurseChange={handleNurseChange}
                   onBulkNurseChange={handleBulkNurseChange}
+                  onNurseCommit={handleNurseCommit}
+                  onBulkNurseCommit={handleBulkNurseCommit}
+                  selectedRowIds={selectedRowIds}
+                  onToggleRow={handleToggleRow}
+                  onToggleAllRows={handleToggleAllRows}
+                  onDeleteRow={handleDeleteRow}
                 />
               )}
             </div>

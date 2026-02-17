@@ -1,0 +1,79 @@
+{
+  "sheets": [
+    {
+      "sheet_id": "sheet-main",
+      "name": "Main Schedule",
+      "client_name": "Central Trust",
+      "created_at": "2026-02-01T09:00:00Z"
+    },
+    {
+      "sheet_id": "logs",
+      "name": "Logs",
+      "client_name": "",
+      "created_at": "2026-02-17T10:49:13.865Z"
+    }
+  ],
+  "nursesBySheet": {
+    "sheet-main": [
+      {
+        "id": "nurse-1",
+        "locum_name": "Amelia Grant",
+        "client": "Central Trust",
+        "search_firstname": "Amelia",
+        "specialty": "ICU",
+        "keyword": "ICU",
+        "gender": "F",
+        "time": "Day"
+      },
+      {
+        "id": "nurse-2",
+        "locum_name": "James Patel",
+        "client": "Central Trust",
+        "search_firstname": "James",
+        "specialty": "A&E",
+        "keyword": "A&E",
+        "gender": "M",
+        "time": "Night"
+      },
+      {
+        "id": "nurse-3",
+        "locum_name": "Nadia Khan",
+        "client": "Central Trust",
+        "search_firstname": "Nadia",
+        "specialty": "Surgery",
+        "keyword": "Surg",
+        "gender": "F",
+        "time": "Late"
+      }
+    ]
+  },
+  "shiftsBySheet": {
+    "sheet-main": [
+      {
+        "nurse_id": "nurse-1",
+        "date": "2026-02-17",
+        "shift": "AE"
+      },
+      {
+        "nurse_id": "nurse-2",
+        "date": "2026-02-18",
+        "shift": "N"
+      },
+      {
+        "nurse_id": "nurse-3",
+        "date": "2026-02-19",
+        "shift": "E"
+      },
+      {
+        "nurse_id": "temp-1771325587910-3",
+        "date": "2026-02-17",
+        "shift": "LD"
+      },
+      {
+        "nurse_id": "temp-1771325587910-3",
+        "date": "2026-02-21",
+        "shift": "LD"
+      }
+    ]
+  }
+}

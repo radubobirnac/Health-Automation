@@ -30,9 +30,9 @@ body {
 }
 
 .dashboard-container {
-  width: 96%;
-  max-width: 1600px;
+  width: min(1680px, 98%);
   margin: 0 auto;
+  padding: 0 8px;
 }
 .site-header {
   position: sticky;
@@ -431,11 +431,9 @@ body {
 }
 
 .dashboard-grid {
-  display: grid;
-  grid-template-columns: minmax(0, 3fr) minmax(0, 1.25fr);
-  gap: 24px;
+  display: block;
   align-items: start;
-  padding-left: 64px;
+  padding-left: 0;
 }
 
 .dashboard-aside {
@@ -445,10 +443,11 @@ body {
 
 .sheet-controls {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
   gap: 16px;
   margin-bottom: 16px;
   align-items: end;
+  width: 100%;
 }
 
 .sheet-field {
@@ -476,8 +475,9 @@ body {
   background: var(--white);
   border-radius: 20px;
   border: 1px solid var(--gray-300);
-  padding: 12px;
+  padding: 16px;
   box-shadow: var(--shadow);
+  width: 100%;
 }
 
 .scheduler-table-wrapper {
@@ -487,10 +487,13 @@ body {
   border-radius: 14px;
   border: 1px solid var(--gray-300);
   background: var(--white);
+  width: 100%;
+  min-width: 100%;
 }
 
 .scheduler-table {
   width: max-content;
+  min-width: 100%;
   border-collapse: collapse;
   font-size: 13px;
 }
@@ -529,46 +532,53 @@ body {
   z-index: 7;
 }
 
+.col-select {
+  width: 44px;
+  min-width: 44px;
+  left: 0;
+  text-align: center;
+}
+
 .col-locum {
   width: 140px;
   min-width: 140px;
-  left: 0;
+  left: 44px;
 }
 
 .col-client {
   width: 110px;
   min-width: 110px;
-  left: 140px;
+  left: 184px;
 }
 
 .col-search {
   width: 80px;
   min-width: 80px;
-  left: 250px;
+  left: 294px;
 }
 
 .col-specialty {
   width: 90px;
   min-width: 90px;
-  left: 330px;
+  left: 374px;
 }
 
 .col-keyword {
   width: 120px;
   min-width: 120px;
-  left: 420px;
+  left: 464px;
 }
 
 .col-gender {
   width: 80px;
   min-width: 80px;
-  left: 540px;
+  left: 584px;
 }
 
 .col-time {
   width: 90px;
   min-width: 90px;
-  left: 620px;
+  left: 664px;
 }
 
 .date-col {
@@ -629,6 +639,20 @@ body {
   display: flex;
   gap: 10px;
   justify-content: center;
+}
+
+.row-actions-header {
+  min-width: 120px;
+  background: var(--gray-100);
+  font-weight: 700;
+}
+
+.row-actions-cell {
+  min-width: 120px;
+}
+
+.row-delete-btn {
+  padding: 6px 12px;
 }
 
 .cell-link {
