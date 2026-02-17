@@ -6,3 +6,5 @@ dist/
 !.env.example
 .DS_Store
 *.log
+scripts/data/db.json
+scripts\data\db.json

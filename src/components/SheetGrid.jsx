@@ -12,7 +12,13 @@ const parseTime = (value) => {
   return Number(hours) * 60 + Number(minutes);
 };
 
-export default function SheetGrid({ columns, rows, onRowsChange }) {
+export default function SheetGrid({
+  columns,
+  rows,
+  onRowsChange,
+  onDeleteRow,
+  showControls = true
+}) {
   const handleChange = (rowIndex, key, value) => {
     const next = rows.map((row, idx) =>
       idx === rowIndex ? { ...row, [key]: value } : row
@@ -84,12 +90,14 @@ export default function SheetGrid({ columns, rows, onRowsChange }) {
 
   return (
     <div className="sheet-card">
-      <div className="sheet-actions">
-        <button className="btn btn-outline" type="button" onClick={handleAddRow}>
-          Add row
-        </button>
-        <span className="sheet-meta">Live validation enabled</span>
-      </div>
+      {showControls && (
+        <div className="sheet-actions">
+          <button className="btn btn-outline" type="button" onClick={handleAddRow}>
+            Add row
+          </button>
+          <span className="sheet-meta">Live validation enabled</span>
+        </div>
+      )}
       <div className="sheet-table-wrapper">
         <table className="sheet-table">
           <thead>
@@ -97,6 +105,7 @@ export default function SheetGrid({ columns, rows, onRowsChange }) {
               {columns.map((column) => (
                 <th key={column}>{column}</th>
               ))}
+              {onDeleteRow && <th>Actions</th>}
             </tr>
           </thead>
           <tbody>
@@ -123,6 +132,17 @@ export default function SheetGrid({ columns, rows, onRowsChange }) {
                     </td>
                   );
                 })}
+                {onDeleteRow && (
+                  <td>
+                    <button
+                      type="button"
+                      className="btn btn-outline row-delete-btn"
+                      onClick={() => onDeleteRow(rowIndex, row)}
+                    >
+                      Delete row
+                    </button>
+                  </td>
+                )}
               </tr>
             ))}
           </tbody>

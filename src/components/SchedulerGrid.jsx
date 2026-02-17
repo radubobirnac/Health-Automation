@@ -30,7 +30,8 @@ export default function SchedulerGrid({
   onToggleAllRows,
   onDeleteRow,
   onNurseCommit,
-  onBulkNurseCommit
+  onBulkNurseCommit,
+  onEnsureRows
 }) {
   const dateKeys = useMemo(
     () => dates.map((date) => date.toISOString().slice(0, 10)),
@@ -42,6 +43,24 @@ export default function SchedulerGrid({
     if (lines.length === 0) return;
     const startIndex = dateKeys.indexOf(dateKey);
     if (startIndex === -1) return;
+    const neededRows = rowIndex + lines.length;
+    const newRows = [];
+    const rowIds = lines.map((_, offset) => {
+      const targetRow = nurses[rowIndex + offset];
+      if (targetRow?.id) {
+        return targetRow.id;
+      }
+      const newId = `temp-${Date.now()}-${rowIndex + offset}`;
+      const emptyRow = LEFT_COLUMNS.reduce(
+        (acc, col) => ({ ...acc, [col.key]: "" }),
+        { id: newId }
+      );
+      newRows.push(emptyRow);
+      return newId;
+    });
+    if (newRows.length && onEnsureRows) {
+      onEnsureRows(newRows, neededRows);
+    }
     const updates = [];
     lines.forEach((line, rowOffset) => {
       const values = line.split("\t");
@@ -49,7 +68,7 @@ export default function SchedulerGrid({
         const targetDate = dateKeys[startIndex + colOffset];
         if (!targetDate) return;
         updates.push({
-          nurseId: nurses[rowIndex + rowOffset]?.id ?? nurseId,
+          nurseId: rowIds[rowOffset] ?? nurseId,
           dateKey: targetDate,
           shift: value.trim()
         });

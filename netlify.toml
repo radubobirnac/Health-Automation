@@ -24,6 +24,16 @@
   status = 200
 
 [[redirects]]
+  from = "/nurses"
+  to = "/.netlify/functions/api/nurses"
+  status = 200
+
+[[redirects]]
+  from = "/nurses/*"
+  to = "/.netlify/functions/api/nurses/:splat"
+  status = 200
+
+[[redirects]]
   from = "/*"
   to = "/index.html"
   status = 200

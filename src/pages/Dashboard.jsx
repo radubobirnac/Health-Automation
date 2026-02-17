@@ -1,8 +1,10 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import SchedulerGrid from "../components/SchedulerGrid.jsx";
+import SheetGrid from "../components/SheetGrid.jsx";
 
 const SHIFT_TYPES = ["LD", "E", "N", "AE"];
+const LOG_COLUMNS = ["Column A", "Column B", "Column C", "Column D", "Column E", "Column F"];
 
 const buildDateRange = (start, end) => {
   const dates = [];
@@ -34,6 +36,17 @@ const padRows = (rows) => {
   return next;
 };
 
+const createEmptyRow = () => ({
+  id: `row-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
+  locum_name: "",
+  client: "",
+  search_firstname: "",
+  specialty: "",
+  keyword: "",
+  gender: "",
+  time: ""
+});
+
 export default function Dashboard() {
   const [sheets, setSheets] = useState([]);
   const [activeSheetId, setActiveSheetId] = useState(null);
@@ -52,6 +65,15 @@ export default function Dashboard() {
     future.setDate(future.getDate() + 30);
     return toInputDate(future);
   });
+  const userId = useMemo(() => {
+    try {
+      const stored = localStorage.getItem("hr_auth");
+      const parsed = stored ? JSON.parse(stored) : {};
+      return (parsed?.user || "").trim();
+    } catch (error) {
+      return "";
+    }
+  }, []);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -64,7 +86,7 @@ export default function Dashboard() {
   useEffect(() => {
     const fetchSheets = async () => {
       try {
-        const response = await fetch("/sheets");
+        const response = await fetch(`/sheets?user_id=${encodeURIComponent(userId)}`);
         const payload = await response.json();
         const list = payload?.sheets || [];
         const hasLogs = list.some((sheet) => (sheet.name || "").toLowerCase() === "logs");
@@ -89,28 +111,42 @@ export default function Dashboard() {
       }
     };
 
-    fetchSheets();
-  }, []);
+    if (userId) {
+      fetchSheets();
+    }
+  }, [userId]);
 
   useEffect(() => {
-    if (!activeSheetId || !startDate || !endDate) return;
+    if (!activeSheetId || !startDate || !endDate || !userId) return;
+    const active = sheets.find((sheet) => sheet.sheet_id === activeSheetId);
+    const isLogs = active?.sheet_id === "logs" || (active?.name || "").toLowerCase() === "logs";
     const fetchSchedule = async () => {
       setStatus({ state: "loading", message: "Loading schedule..." });
       try {
         const response = await fetch(
-          `/schedule?start=${startDate}&end=${endDate}&sheet_id=${activeSheetId}`
+          `/schedule?start=${startDate}&end=${endDate}&sheet_id=${activeSheetId}&user_id=${encodeURIComponent(
+            userId
+          )}`
         );
         if (!response.ok) {
           throw new Error("Schedule unavailable");
         }
         const payload = await response.json();
         setSheetName(payload?.sheet?.name || "");
-        setNurses(padRows(payload?.nurses || []));
+        if (isLogs) {
+          setNurses(payload?.nurses || []);
+        } else {
+          setNurses(padRows(payload?.nurses || []));
+        }
         const nextMap = {};
-        (payload?.shifts || []).forEach((shift) => {
-          nextMap[`${shift.nurse_id}_${shift.date}`] = shift.shift;
-        });
-        setShifts(nextMap);
+        if (!isLogs) {
+          (payload?.shifts || []).forEach((shift) => {
+            nextMap[`${shift.nurse_id}_${shift.date}`] = shift.shift;
+          });
+          setShifts(nextMap);
+        } else {
+          setShifts({});
+        }
         setStatus({ state: "success", message: "Schedule loaded." });
       } catch (error) {
         setStatus({ state: "error", message: "Unable to load schedule." });
@@ -118,7 +154,7 @@ export default function Dashboard() {
     };
 
     fetchSchedule();
-  }, [activeSheetId, startDate, endDate]);
+  }, [activeSheetId, startDate, endDate, userId, sheets]);
 
   useEffect(() => {
     setSelectedRowIds([]);
@@ -139,7 +175,8 @@ export default function Dashboard() {
           sheet_id: activeSheetId,
           nurse_id: nurseId,
           date: dateKey,
-          shift
+          shift,
+          user_id: userId
         })
       });
     } catch (error) {
@@ -166,7 +203,8 @@ export default function Dashboard() {
               sheet_id: activeSheetId,
               nurse_id: update.nurseId,
               date: update.dateKey,
-              shift: update.shift
+              shift: update.shift,
+              user_id: userId
             })
           })
         )
@@ -177,16 +215,7 @@ export default function Dashboard() {
   };
 
   const handleAddRow = () => {
-    const newRow = {
-      id: `row-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
-      locum_name: "",
-      client: "",
-      search_firstname: "",
-      specialty: "",
-      keyword: "",
-      gender: "",
-      time: ""
-    };
+    const newRow = createEmptyRow();
     setNurses((prev) =>
       padRows([...prev, newRow])
     );
@@ -219,7 +248,7 @@ export default function Dashboard() {
       await fetch("/nurses/upsert", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ sheet_id: activeSheetId, nurses: rows })
+        body: JSON.stringify({ sheet_id: activeSheetId, nurses: rows, user_id: userId })
       });
     } catch (error) {
       setStatus({ state: "error", message: "Failed to save row updates." });
@@ -233,7 +262,7 @@ export default function Dashboard() {
       const response = await fetch("/sheets/create", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name: trimmed })
+        body: JSON.stringify({ name: trimmed, user_id: userId })
       });
       if (!response.ok) {
         throw new Error("Create failed");
@@ -253,12 +282,12 @@ export default function Dashboard() {
 
   const handleDuplicateSheet = async () => {
     const active = sheets.find((sheet) => sheet.sheet_id === activeSheetId);
-    if (!active || (active.name || "").toLowerCase() === "logs") return;
+    if (!active) return;
     try {
       const response = await fetch("/sheets/duplicate", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ sheet_id: active.sheet_id })
+        body: JSON.stringify({ sheet_id: active.sheet_id, user_id: userId })
       });
       if (!response.ok) {
         throw new Error("Duplicate failed");
@@ -288,6 +317,12 @@ export default function Dashboard() {
       });
       return next;
     });
+  };
+
+  const handleEnsureRows = (newRows) => {
+    if (!newRows?.length) return;
+    setNurses((prev) => padRows([...prev, ...newRows]));
+    saveNurses(newRows);
   };
 
   const handleNurseCommit = (nurse) => {
@@ -354,7 +389,7 @@ export default function Dashboard() {
       await fetch("/nurses/delete", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ sheet_id: activeSheetId, nurse_ids: rowIds })
+        body: JSON.stringify({ sheet_id: activeSheetId, nurse_ids: rowIds, user_id: userId })
       });
     } catch (error) {
       setStatus({ state: "error", message: "Failed to delete rows." });
@@ -369,6 +404,39 @@ export default function Dashboard() {
     deleteRows([rowId]);
   };
 
+  const ensureLogRowIds = (rows) => {
+    return rows.map((row) => (row?.id ? row : { id: createEmptyRow().id, ...row }));
+  };
+
+  const handleLogsRowsChange = (nextRows) => {
+    const withIds = ensureLogRowIds(nextRows);
+    setNurses(withIds);
+    saveNurses(withIds);
+  };
+
+  const handleLogsAddRow = () => {
+    const newRow = LOG_COLUMNS.reduce(
+      (acc, key) => ({ ...acc, [key]: "" }),
+      { id: createEmptyRow().id }
+    );
+    const next = [...nurses, newRow];
+    setNurses(next);
+    saveNurses([newRow]);
+  };
+
+  const handleLogsDeleteRow = (rowIndex, row) => {
+    const next = nurses.filter((_, index) => index !== rowIndex);
+    setNurses(next);
+    if (!row?.id) return;
+    fetch("/nurses/delete", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ sheet_id: activeSheetId, nurse_ids: [row.id], user_id: userId })
+    }).catch(() => {
+      setStatus({ state: "error", message: "Failed to delete rows." });
+    });
+  };
+
   const handleRename = async (overrideName) => {
     if (!activeSheetId) return;
     const active = sheets.find((sheet) => sheet.sheet_id === activeSheetId);
@@ -379,7 +447,7 @@ export default function Dashboard() {
       const response = await fetch("/sheets/rename", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ sheet_id: activeSheetId, name: trimmed })
+        body: JSON.stringify({ sheet_id: activeSheetId, name: trimmed, user_id: userId })
       });
       if (!response.ok) {
         throw new Error("Rename failed");
@@ -435,7 +503,6 @@ export default function Dashboard() {
               className="sheet-tab"
               type="button"
               onClick={handleDuplicateSheet}
-              disabled={isLogsSheet}
             >
               Duplicate
             </button>
@@ -492,37 +559,57 @@ export default function Dashboard() {
                 </div>
               </div>
               <div className="sheet-actions-row">
-                <button className="btn btn-outline" type="button" onClick={handleAddRow}>
+                <button
+                  className="btn btn-outline"
+                  type="button"
+                  onClick={isLogsSheet ? handleLogsAddRow : handleAddRow}
+                >
                   Add row
                 </button>
                 <button
                   className="btn btn-outline"
                   type="button"
                   onClick={handleDeleteSelectedRows}
-                  disabled={!selectedRowIds.length}
+                  disabled={isLogsSheet || !selectedRowIds.length}
                 >
                   Delete selected
                 </button>
-                <button className="btn btn-outline" type="button" onClick={handleAddColumn}>
+                <button
+                  className="btn btn-outline"
+                  type="button"
+                  onClick={handleAddColumn}
+                  disabled={isLogsSheet}
+                >
                   Add column (next day)
                 </button>
               </div>
-              <SchedulerGrid
-                nurses={nurses}
-                dates={dates}
-                shifts={shifts}
-                shiftTypes={SHIFT_TYPES}
-                onShiftChange={handleShiftChange}
-                onBulkShiftChange={handleBulkShiftChange}
-                onNurseChange={handleNurseChange}
-                onBulkNurseChange={handleBulkNurseChange}
-                onNurseCommit={handleNurseCommit}
-                onBulkNurseCommit={handleBulkNurseCommit}
-                selectedRowIds={selectedRowIds}
-                onToggleRow={handleToggleRow}
-                onToggleAllRows={handleToggleAllRows}
-                onDeleteRow={handleDeleteRow}
-              />
+              {isLogsSheet ? (
+                <SheetGrid
+                  columns={LOG_COLUMNS}
+                  rows={nurses}
+                  onRowsChange={handleLogsRowsChange}
+                  onDeleteRow={handleLogsDeleteRow}
+                  showControls={false}
+                />
+              ) : (
+                <SchedulerGrid
+                  nurses={nurses}
+                  dates={dates}
+                  shifts={shifts}
+                  shiftTypes={SHIFT_TYPES}
+                  onShiftChange={handleShiftChange}
+                  onBulkShiftChange={handleBulkShiftChange}
+                  onNurseChange={handleNurseChange}
+                  onBulkNurseChange={handleBulkNurseChange}
+                  onNurseCommit={handleNurseCommit}
+                  onBulkNurseCommit={handleBulkNurseCommit}
+                  onEnsureRows={handleEnsureRows}
+                  selectedRowIds={selectedRowIds}
+                  onToggleRow={handleToggleRow}
+                  onToggleAllRows={handleToggleAllRows}
+                  onDeleteRow={handleDeleteRow}
+                />
+              )}
             </div>
           </div>
         </div>
