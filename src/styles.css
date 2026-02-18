@@ -480,6 +480,12 @@ body {
   width: 100%;
 }
 
+.scheduler-toolbar {
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: 12px;
+}
+
 .scheduler-table-wrapper {
   overflow-x: auto;
   overflow-y: auto;
@@ -653,6 +659,11 @@ body {
 
 .row-delete-btn {
   padding: 6px 12px;
+}
+
+.row-selected td,
+.row-selected .sticky-col {
+  background: var(--green-100);
 }
 
 .cell-link {

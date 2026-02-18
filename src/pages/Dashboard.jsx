@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import SchedulerGrid from "../components/SchedulerGrid.jsx";
 import SheetGrid from "../components/SheetGrid.jsx";
@@ -51,11 +51,14 @@ export default function Dashboard() {
   const [sheets, setSheets] = useState([]);
   const [activeSheetId, setActiveSheetId] = useState(null);
   const [sheetName, setSheetName] = useState("");
-  const [newSheetName, setNewSheetName] = useState("");
   const [selectedRowIds, setSelectedRowIds] = useState([]);
   const [status, setStatus] = useState({ state: "loading", message: "Loading data..." });
   const [nurses, setNurses] = useState([]);
   const [shifts, setShifts] = useState({});
+  const sheetCacheRef = useRef(new Map());
+  const lastLocalUpdateRef = useRef({});
+  const lastServerSyncRef = useRef({});
+  const dataSheetIdRef = useRef(null);
   const [startDate, setStartDate] = useState(() => {
     const today = new Date();
     return toInputDate(today);
@@ -75,6 +78,17 @@ export default function Dashboard() {
     }
   }, []);
   const navigate = useNavigate();
+
+  const markLocalUpdate = () => {
+    if (!activeSheetId) return;
+    lastLocalUpdateRef.current[activeSheetId] = Date.now();
+    dataSheetIdRef.current = activeSheetId;
+  };
+
+  const markServerSync = (sheetId) => {
+    if (!sheetId) return;
+    lastServerSyncRef.current[sheetId] = Date.now();
+  };
 
   useEffect(() => {
     const auth = localStorage.getItem("hr_auth");
@@ -120,45 +134,83 @@ export default function Dashboard() {
     if (!activeSheetId || !startDate || !endDate || !userId) return;
     const active = sheets.find((sheet) => sheet.sheet_id === activeSheetId);
     const isLogs = active?.sheet_id === "logs" || (active?.name || "").toLowerCase() === "logs";
+    const cached = sheetCacheRef.current.get(activeSheetId);
+    if (cached) {
+      dataSheetIdRef.current = activeSheetId;
+      setNurses(cached.nurses);
+      setShifts(cached.shifts);
+      if (cached.sheetName) {
+        setSheetName(cached.sheetName);
+      }
+    }
+    const fetchStartedAt = Date.now();
+    const controller = new AbortController();
+    let isCurrent = true;
     const fetchSchedule = async () => {
       setStatus({ state: "loading", message: "Loading schedule..." });
       try {
         const response = await fetch(
           `/schedule?start=${startDate}&end=${endDate}&sheet_id=${activeSheetId}&user_id=${encodeURIComponent(
             userId
-          )}`
+          )}`,
+          { signal: controller.signal }
         );
         if (!response.ok) {
           throw new Error("Schedule unavailable");
         }
         const payload = await response.json();
-        setSheetName(payload?.sheet?.name || "");
-        if (isLogs) {
-          setNurses(payload?.nurses || []);
-        } else {
-          setNurses(padRows(payload?.nurses || []));
-        }
-        const nextMap = {};
-        if (!isLogs) {
-          (payload?.shifts || []).forEach((shift) => {
-            nextMap[`${shift.nurse_id}_${shift.date}`] = shift.shift;
-          });
-          setShifts(nextMap);
-        } else {
-          setShifts({});
+        if (!isCurrent) return;
+        const lastLocalUpdate = lastLocalUpdateRef.current[activeSheetId];
+        const lastServerSync = lastServerSyncRef.current[activeSheetId];
+        const hasUnsyncedChanges =
+          lastLocalUpdate && (!lastServerSync || lastServerSync < lastLocalUpdate);
+        const shouldApply =
+          !hasUnsyncedChanges && (!lastLocalUpdate || lastLocalUpdate <= fetchStartedAt);
+        if (shouldApply) {
+          dataSheetIdRef.current = activeSheetId;
+          setSheetName(payload?.sheet?.name || "");
+          if (isLogs) {
+            setNurses(payload?.nurses || []);
+          } else {
+            setNurses(padRows(payload?.nurses || []));
+          }
+          const nextMap = {};
+          if (!isLogs) {
+            (payload?.shifts || []).forEach((shift) => {
+              nextMap[`${shift.nurse_id}_${shift.date}`] = shift.shift;
+            });
+            setShifts(nextMap);
+          } else {
+            setShifts({});
+          }
         }
         setStatus({ state: "success", message: "Schedule loaded." });
       } catch (error) {
+        if (!isCurrent || error.name === "AbortError") return;
         setStatus({ state: "error", message: "Unable to load schedule." });
       }
     };
 
     fetchSchedule();
+    return () => {
+      isCurrent = false;
+      controller.abort();
+    };
   }, [activeSheetId, startDate, endDate, userId, sheets]);
 
   useEffect(() => {
     setSelectedRowIds([]);
   }, [activeSheetId]);
+
+  useEffect(() => {
+    const sheetId = dataSheetIdRef.current;
+    if (!sheetId) return;
+    sheetCacheRef.current.set(sheetId, {
+      nurses,
+      shifts,
+      sheetName
+    });
+  }, [nurses, shifts, sheetName]);
 
   const dates = useMemo(() => {
     if (!startDate || !endDate) return [];
@@ -166,25 +218,30 @@ export default function Dashboard() {
   }, [startDate, endDate]);
 
   const handleShiftChange = async (nurseId, dateKey, shift) => {
+    markLocalUpdate();
+    const sheetId = activeSheetId;
     setShifts((prev) => ({ ...prev, [`${nurseId}_${dateKey}`]: shift }));
     try {
       await fetch("/schedule/update", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          sheet_id: activeSheetId,
+          sheet_id: sheetId,
           nurse_id: nurseId,
           date: dateKey,
           shift,
           user_id: userId
         })
       });
+      markServerSync(sheetId);
     } catch (error) {
       setStatus({ state: "error", message: "Failed to save shift." });
     }
   };
 
   const handleBulkShiftChange = async (updates) => {
+    markLocalUpdate();
+    const sheetId = activeSheetId;
     setShifts((prev) => {
       const next = { ...prev };
       updates.forEach((update) => {
@@ -200,7 +257,7 @@ export default function Dashboard() {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
-              sheet_id: activeSheetId,
+              sheet_id: sheetId,
               nurse_id: update.nurseId,
               date: update.dateKey,
               shift: update.shift,
@@ -209,12 +266,14 @@ export default function Dashboard() {
           })
         )
       );
+      markServerSync(sheetId);
     } catch (error) {
       setStatus({ state: "error", message: "Failed to save pasted shifts." });
     }
   };
 
   const handleAddRow = () => {
+    markLocalUpdate();
     const newRow = createEmptyRow();
     setNurses((prev) =>
       padRows([...prev, newRow])
@@ -222,21 +281,16 @@ export default function Dashboard() {
     saveNurses([newRow]);
   };
 
-  const handleAddColumn = () => {
-    const next = new Date(endDate);
-    next.setDate(next.getDate() + 1);
-    setEndDate(toInputDate(next));
-  };
 
   const handleNurseChange = (nurseId, key, value) => {
+    markLocalUpdate();
     let updatedRow;
-    setNurses((prev) =>
-      prev.map((nurse) => {
-        if (nurse.id !== nurseId) return nurse;
-        updatedRow = { ...nurse, [key]: value };
-        return updatedRow;
-      })
-    );
+    const next = nurses.map((nurse) => {
+      if (nurse.id !== nurseId) return nurse;
+      updatedRow = { ...nurse, [key]: value };
+      return updatedRow;
+    });
+    setNurses(next);
     if (updatedRow) {
       saveNurses([updatedRow]);
     }
@@ -244,39 +298,16 @@ export default function Dashboard() {
 
   const saveNurses = async (rows) => {
     if (!activeSheetId || !rows || rows.length === 0) return;
+    const sheetId = activeSheetId;
     try {
       await fetch("/nurses/upsert", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ sheet_id: activeSheetId, nurses: rows, user_id: userId })
+        body: JSON.stringify({ sheet_id: sheetId, nurses: rows, user_id: userId })
       });
+      markServerSync(sheetId);
     } catch (error) {
       setStatus({ state: "error", message: "Failed to save row updates." });
-    }
-  };
-
-  const handleCreateSheet = async (overrideName) => {
-    const trimmed = (overrideName ?? newSheetName).trim();
-    if (!trimmed) return;
-    try {
-      const response = await fetch("/sheets/create", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name: trimmed, user_id: userId })
-      });
-      if (!response.ok) {
-        throw new Error("Create failed");
-      }
-      const payload = await response.json();
-      const created = payload?.sheet || { sheet_id: payload.sheet_id, name: trimmed };
-      setSheets((prev) => [...prev.filter((s) => s.name !== "Logs"), created, ...prev.filter((s) => s.name === "Logs")]);
-      setActiveSheetId(created.sheet_id);
-      setSheetName(created.name);
-      setNurses(padRows([]));
-      setShifts({});
-      setNewSheetName("");
-    } catch (error) {
-      setStatus({ state: "error", message: "Failed to create sheet." });
     }
   };
 
@@ -302,12 +333,14 @@ export default function Dashboard() {
       setSheetName(created.name);
       setNurses(padRows([]));
       setShifts({});
+      dataSheetIdRef.current = created.sheet_id;
     } catch (error) {
       setStatus({ state: "error", message: "Failed to duplicate sheet." });
     }
   };
 
   const handleBulkNurseChange = (updates) => {
+    markLocalUpdate();
     setNurses((prev) => {
       const next = [...prev];
       updates.forEach((update) => {
@@ -321,6 +354,7 @@ export default function Dashboard() {
 
   const handleEnsureRows = (newRows) => {
     if (!newRows?.length) return;
+    markLocalUpdate();
     setNurses((prev) => padRows([...prev, ...newRows]));
     saveNurses(newRows);
   };
@@ -335,21 +369,19 @@ export default function Dashboard() {
 
   const handleBulkNurseCommit = ({ updates, rowIndices }) => {
     if (!updates?.length || !rowIndices?.length) return;
-    let updatedRows = [];
-    setNurses((prev) => {
-      const next = [...prev];
-      const affected = new Set(rowIndices);
-      updates.forEach((update) => {
-        const rowIndex = update.rowIndex;
-        if (!next[rowIndex]) return;
-        next[rowIndex] = { ...next[rowIndex], [update.key]: update.value };
-        affected.add(rowIndex);
-      });
-      updatedRows = Array.from(affected)
-        .map((index) => next[index])
-        .filter(Boolean);
-      return next;
+    markLocalUpdate();
+    const next = [...nurses];
+    const affected = new Set(rowIndices);
+    updates.forEach((update) => {
+      const rowIndex = update.rowIndex;
+      if (!next[rowIndex]) return;
+      next[rowIndex] = { ...next[rowIndex], [update.key]: update.value };
+      affected.add(rowIndex);
     });
+    const updatedRows = Array.from(affected)
+      .map((index) => next[index])
+      .filter(Boolean);
+    setNurses(next);
     saveNurses(updatedRows);
   };
 
@@ -373,6 +405,8 @@ export default function Dashboard() {
 
   const deleteRows = async (rowIds) => {
     if (!rowIds.length) return;
+    markLocalUpdate();
+    const sheetId = activeSheetId;
     setNurses((prev) => padRows(prev.filter((nurse) => !rowIds.includes(nurse.id))));
     setShifts((prev) => {
       const next = {};
@@ -389,8 +423,9 @@ export default function Dashboard() {
       await fetch("/nurses/delete", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ sheet_id: activeSheetId, nurse_ids: rowIds, user_id: userId })
+        body: JSON.stringify({ sheet_id: sheetId, nurse_ids: rowIds, user_id: userId })
       });
+      markServerSync(sheetId);
     } catch (error) {
       setStatus({ state: "error", message: "Failed to delete rows." });
     }
@@ -409,12 +444,14 @@ export default function Dashboard() {
   };
 
   const handleLogsRowsChange = (nextRows) => {
+    markLocalUpdate();
     const withIds = ensureLogRowIds(nextRows);
     setNurses(withIds);
     saveNurses(withIds);
   };
 
   const handleLogsAddRow = () => {
+    markLocalUpdate();
     const newRow = LOG_COLUMNS.reduce(
       (acc, key) => ({ ...acc, [key]: "" }),
       { id: createEmptyRow().id }
@@ -425,14 +462,20 @@ export default function Dashboard() {
   };
 
   const handleLogsDeleteRow = (rowIndex, row) => {
+    markLocalUpdate();
+    const sheetId = activeSheetId;
     const next = nurses.filter((_, index) => index !== rowIndex);
     setNurses(next);
     if (!row?.id) return;
     fetch("/nurses/delete", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ sheet_id: activeSheetId, nurse_ids: [row.id], user_id: userId })
-    }).catch(() => {
+      body: JSON.stringify({ sheet_id: sheetId, nurse_ids: [row.id], user_id: userId })
+    })
+      .then(() => {
+        markServerSync(sheetId);
+      })
+      .catch(() => {
       setStatus({ state: "error", message: "Failed to delete rows." });
     });
   };
@@ -527,21 +570,6 @@ export default function Dashboard() {
                   />
                 </div>
                 <div className="sheet-field">
-                  <label>New sheet name</label>
-                  <input
-                    type="text"
-                    value={newSheetName}
-                    placeholder="Type name and press Enter"
-                    onChange={(event) => setNewSheetName(event.target.value)}
-                    onKeyDown={(event) => {
-                      if (event.key === "Enter") {
-                        event.preventDefault();
-                        handleCreateSheet(event.target.value);
-                      }
-                    }}
-                  />
-                </div>
-                <div className="sheet-field">
                   <label>Start date</label>
                   <input
                     type="date"
@@ -574,14 +602,6 @@ export default function Dashboard() {
                 >
                   Delete selected
                 </button>
-                <button
-                  className="btn btn-outline"
-                  type="button"
-                  onClick={handleAddColumn}
-                  disabled={isLogsSheet}
-                >
-                  Add column (next day)
-                </button>
               </div>
               {isLogsSheet ? (
                 <SheetGrid
@@ -607,6 +627,7 @@ export default function Dashboard() {
                   selectedRowIds={selectedRowIds}
                   onToggleRow={handleToggleRow}
                   onToggleAllRows={handleToggleAllRows}
+                  onDeleteRows={handleDeleteSelectedRows}
                   onDeleteRow={handleDeleteRow}
                 />
               )}

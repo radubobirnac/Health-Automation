@@ -28,6 +28,7 @@ export default function SchedulerGrid({
   selectedRowIds,
   onToggleRow,
   onToggleAllRows,
+  onDeleteRows,
   onDeleteRow,
   onNurseCommit,
   onBulkNurseCommit,
@@ -37,38 +38,139 @@ export default function SchedulerGrid({
     () => dates.map((date) => date.toISOString().slice(0, 10)),
     [dates]
   );
+  const selectedRowIndexSet = useMemo(() => new Set(selectedRowIds ?? []), [selectedRowIds]);
+  const selectedRowIndices = useMemo(() => {
+    if (!selectedRowIds?.length) return [];
+    const indices = [];
+    nurses.forEach((nurse, index) => {
+      if (selectedRowIndexSet.has(nurse.id)) {
+        indices.push(index);
+      }
+    });
+    return indices;
+  }, [nurses, selectedRowIds, selectedRowIndexSet]);
+
+  const normalizeClipboardRows = (text) => {
+    const raw = text.replace(/\r/g, "").split("\n");
+    while (raw.length > 0 && raw[raw.length - 1] === "") {
+      raw.pop();
+    }
+    return raw;
+  };
+
+  const createEmptyRow = (id) =>
+    LEFT_COLUMNS.reduce((acc, col) => ({ ...acc, [col.key]: "" }), { id });
+
+  const prepareRowTargets = (targetRowIndices) => {
+    const rowIdByIndex = new Map();
+    if (!targetRowIndices.length) return rowIdByIndex;
+    const maxIndex = Math.max(...targetRowIndices);
+    const newRows = [];
+    for (let index = 0; index <= maxIndex; index += 1) {
+      const existing = nurses[index];
+      if (existing?.id) {
+        rowIdByIndex.set(index, existing.id);
+        continue;
+      }
+      const newId = `temp-${Date.now()}-${index}`;
+      rowIdByIndex.set(index, newId);
+      if (index >= nurses.length) {
+        newRows.push(createEmptyRow(newId));
+      }
+    }
+    if (newRows.length && onEnsureRows) {
+      onEnsureRows(newRows);
+    }
+    return rowIdByIndex;
+  };
+
+  const getTargetRowIndices = (rowCount, startIndex) => {
+    if (!selectedRowIndices.length) {
+      return Array.from({ length: rowCount }, (_, offset) => startIndex + offset);
+    }
+    const ordered = [...selectedRowIndices].sort((a, b) => a - b);
+    if (ordered.length >= rowCount) {
+      return ordered.slice(0, rowCount);
+    }
+    const lastIndex = ordered.length ? ordered[ordered.length - 1] : startIndex;
+    const extras = Array.from(
+      { length: rowCount - ordered.length },
+      (_, offset) => lastIndex + offset + 1
+    );
+    return [...ordered, ...extras];
+  };
+
+  const handleRowPaste = (rowIndex, text) => {
+    if (!onBulkNurseChange && !onBulkShiftChange) return;
+    const rows = normalizeClipboardRows(text);
+    if (!rows.length) return;
+    const rowMatrix = rows.map((row) => row.split("\t"));
+    const targetRowIndices = getTargetRowIndices(rowMatrix.length, rowIndex);
+    const rowIdByIndex = prepareRowTargets(targetRowIndices);
+
+    const nurseUpdates = [];
+    const nurseAffected = new Set();
+    const shiftUpdates = [];
+
+    rowMatrix.forEach((values, rowOffset) => {
+      const targetRowIndex = targetRowIndices[rowOffset];
+      const nurseId = rowIdByIndex.get(targetRowIndex);
+      values.forEach((value, colOffset) => {
+        if (colOffset < LEFT_COLUMNS.length) {
+          const column = LEFT_COLUMNS[colOffset];
+          if (!column) return;
+          nurseUpdates.push({
+            rowIndex: targetRowIndex,
+            key: column.key,
+            value: value.trim()
+          });
+          nurseAffected.add(targetRowIndex);
+          return;
+        }
+        const dateKey = dateKeys[colOffset - LEFT_COLUMNS.length];
+        if (!dateKey) return;
+        if (!nurseId) return;
+        shiftUpdates.push({
+          nurseId,
+          dateKey,
+          shift: value.trim()
+        });
+      });
+    });
+
+    if (nurseUpdates.length && onBulkNurseChange) {
+      onBulkNurseChange(nurseUpdates);
+      if (onBulkNurseCommit) {
+        onBulkNurseCommit({ updates: nurseUpdates, rowIndices: Array.from(nurseAffected) });
+      }
+    }
+    if (shiftUpdates.length && onBulkShiftChange) {
+      onBulkShiftChange(shiftUpdates);
+    }
+  };
+
   const handlePaste = (nurseId, dateKey, rowIndex, text) => {
     if (!onBulkShiftChange) return;
-    const lines = text.replace(/\r/g, "").split("\n").filter(Boolean);
-    if (lines.length === 0) return;
+    if (selectedRowIds?.length) {
+      handleRowPaste(rowIndex, text);
+      return;
+    }
+    const rows = normalizeClipboardRows(text);
+    if (!rows.length) return;
     const startIndex = dateKeys.indexOf(dateKey);
     if (startIndex === -1) return;
-    const neededRows = rowIndex + lines.length;
-    const newRows = [];
-    const rowIds = lines.map((_, offset) => {
-      const targetRow = nurses[rowIndex + offset];
-      if (targetRow?.id) {
-        return targetRow.id;
-      }
-      const newId = `temp-${Date.now()}-${rowIndex + offset}`;
-      const emptyRow = LEFT_COLUMNS.reduce(
-        (acc, col) => ({ ...acc, [col.key]: "" }),
-        { id: newId }
-      );
-      newRows.push(emptyRow);
-      return newId;
-    });
-    if (newRows.length && onEnsureRows) {
-      onEnsureRows(newRows, neededRows);
-    }
+    const rowMatrix = rows.map((row) => row.split("\t"));
+    const targetRowIndices = getTargetRowIndices(rowMatrix.length, rowIndex);
+    const rowIdByIndex = prepareRowTargets(targetRowIndices);
     const updates = [];
-    lines.forEach((line, rowOffset) => {
-      const values = line.split("\t");
+    rowMatrix.forEach((values, rowOffset) => {
+      const targetRowIndex = targetRowIndices[rowOffset];
+      const targetId = rowIdByIndex.get(targetRowIndex) ?? nurseId;
       values.forEach((value, colOffset) => {
         const targetDate = dateKeys[startIndex + colOffset];
         if (!targetDate) return;
         updates.push({
-          nurseId: rowIds[rowOffset] ?? nurseId,
+          nurseId: targetId,
           dateKey: targetDate,
           shift: value.trim()
         });
@@ -79,16 +181,22 @@ export default function SchedulerGrid({
 
   const handleLeftPaste = (rowIndex, colIndex, text) => {
     if (!onBulkNurseChange) return;
-    const lines = text.replace(/\r/g, "").split("\n").filter(Boolean);
-    if (lines.length === 0) return;
+    if (selectedRowIds?.length) {
+      handleRowPaste(rowIndex, text);
+      return;
+    }
+    const rows = normalizeClipboardRows(text);
+    if (!rows.length) return;
+    const rowMatrix = rows.map((row) => row.split("\t"));
+    const targetRowIndices = getTargetRowIndices(rowMatrix.length, rowIndex);
+    prepareRowTargets(targetRowIndices);
     const updates = [];
     const affectedRows = new Set();
-    lines.forEach((line, rowOffset) => {
-      const values = line.split("\t");
+    rowMatrix.forEach((values, rowOffset) => {
+      const targetRowIndex = targetRowIndices[rowOffset];
       values.forEach((value, colOffset) => {
         const column = LEFT_COLUMNS[colIndex + colOffset];
         if (!column) return;
-        const targetRowIndex = rowIndex + rowOffset;
         updates.push({
           rowIndex: targetRowIndex,
           key: column.key,
@@ -105,8 +213,46 @@ export default function SchedulerGrid({
 
   return (
     <div className="scheduler-card">
+      <div className="scheduler-toolbar">
+        <button
+          type="button"
+          className="btn btn-outline"
+          onClick={() => {
+            if (!selectedRowIds?.length) return;
+            if (onDeleteRows) {
+              onDeleteRows(selectedRowIds);
+              return;
+            }
+            if (onDeleteRow) {
+              selectedRowIds.forEach((rowId) => onDeleteRow(rowId));
+            }
+          }}
+          disabled={!selectedRowIds?.length}
+        >
+          Delete Selected Rows
+        </button>
+      </div>
       <div className="scheduler-table-wrapper">
-        <table className="scheduler-table">
+        <table
+          className="scheduler-table"
+          onCopy={(event) => {
+            if (!selectedRowIds?.length) return;
+            const rowsToCopy = nurses.filter((nurse) => selectedRowIndexSet.has(nurse.id));
+            if (!rowsToCopy.length) return;
+            const text = rowsToCopy
+              .map((nurse) => {
+                const leftValues = LEFT_COLUMNS.map((col) => nurse[col.key] ?? "");
+                const shiftValues = dateKeys.map(
+                  (dateKey) => shifts[`${nurse.id}_${dateKey}`] ?? ""
+                );
+                return [...leftValues, ...shiftValues].join("\t");
+              })
+              .join("\n");
+            event.preventDefault();
+            event.clipboardData.setData("text/plain", text);
+            event.clipboardData.setData("text", text);
+          }}
+        >
           <thead>
             <tr>
               <th className="sticky-col col-select">
@@ -150,7 +296,10 @@ export default function SchedulerGrid({
           </thead>
           <tbody>
             {nurses.map((nurse, rowIndex) => (
-              <tr key={nurse.id}>
+              <tr
+                key={nurse.id}
+                className={selectedRowIndexSet.has(nurse.id) ? "row-selected" : undefined}
+              >
                 <td className="sticky-col col-select">
                   <input
                     type="checkbox"
