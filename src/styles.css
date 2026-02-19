@@ -124,6 +124,17 @@ body {
   background: transparent;
 }
 
+.btn-danger {
+  background: #dc3545;
+  color: var(--white);
+  border-color: #dc3545;
+}
+
+.btn-danger:hover {
+  background: #bb2d3b;
+  border-color: #bb2d3b;
+}
+
 .hero {
   padding: 80px 0 60px;
 }
@@ -337,6 +348,13 @@ body {
 .form-note {
   font-size: 0.85rem;
   color: var(--gray-600);
+}
+
+.button-row {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  align-items: center;
 }
 
 .contact-card {

@@ -1,40 +1,10 @@
-import fs from "node:fs";
-import path from "node:path";
+import { firestore } from "./firebase-admin.js";
+import bcrypt from "bcryptjs";
+import jwt from "jsonwebtoken";
 
 const createId = () => `sheet-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
 
 const clone = (value) => JSON.parse(JSON.stringify(value));
-
-const DB_PATH = path.resolve("scripts", "data", "db.json");
-const DEFAULT_USER_ID = "default";
-
-const ensureDbFile = () => {
-  const dir = path.dirname(DB_PATH);
-  if (!fs.existsSync(dir)) {
-    fs.mkdirSync(dir, { recursive: true });
-  }
-  if (!fs.existsSync(DB_PATH)) {
-    const seed = {
-      users: {
-        [DEFAULT_USER_ID]: createUserSeed()
-      }
-    };
-    fs.writeFileSync(DB_PATH, JSON.stringify(seed, null, 2), "utf-8");
-  }
-};
-
-const migrateLegacyDb = (raw) => {
-  if (raw?.users) return raw;
-  return {
-    users: {
-      [DEFAULT_USER_ID]: {
-        sheets: Array.isArray(raw?.sheets) ? raw.sheets : clone(DEFAULT_SHEETS),
-        nursesBySheet: raw?.nursesBySheet || { "sheet-main": clone(DEFAULT_NURSES) },
-        shiftsBySheet: raw?.shiftsBySheet || { "sheet-main": clone(DEFAULT_SHIFTS) }
-      }
-    }
-  };
-};
 
 const createLogsSheet = () => ({
   sheet_id: "logs",
@@ -43,7 +13,7 @@ const createLogsSheet = () => ({
   created_at: new Date().toISOString()
 });
 
-const createUserSeed = () => {
+const createUserSeed = (clientName = "") => {
   const seed = {
     sheets: clone(DEFAULT_SHEETS),
     nursesBySheet: {
@@ -56,36 +26,58 @@ const createUserSeed = () => {
   if (!seed.sheets.some((sheet) => sheet.sheet_id === "logs")) {
     seed.sheets.push(createLogsSheet());
   }
+  if (clientName) {
+    seed.sheets = seed.sheets.map((sheet) =>
+      sheet.sheet_id === "sheet-main"
+        ? { ...sheet, client_name: clientName }
+        : sheet
+    );
+    if (seed.nursesBySheet["sheet-main"]) {
+      seed.nursesBySheet["sheet-main"] = seed.nursesBySheet["sheet-main"].map((nurse) => ({
+        ...nurse,
+        client: clientName
+      }));
+    }
+  }
   seed.nursesBySheet.logs = seed.nursesBySheet.logs || [];
   seed.shiftsBySheet.logs = seed.shiftsBySheet.logs || [];
   return seed;
 };
 
-const loadDb = () => {
-  ensureDbFile();
-  try {
-    const raw = fs.readFileSync(DB_PATH, "utf-8");
-    const parsed = raw ? JSON.parse(raw) : {};
-    return migrateLegacyDb(parsed);
-  } catch (error) {
-    return {
-      users: {
-        [DEFAULT_USER_ID]: createUserSeed()
-      }
-    };
-  }
+const AUTH_COLLECTION = "auth_users";
+
+const getUserDoc = (userId) => firestore.collection("users").doc(userId);
+
+const getAuthDoc = (username) =>
+  firestore.collection(AUTH_COLLECTION).doc(normalizeName(username).toLowerCase());
+
+const getAuthUser = async (username) => {
+  const doc = await getAuthDoc(username).get();
+  if (!doc.exists) return null;
+  return doc.data();
 };
 
-const saveDb = (db) => {
-  ensureDbFile();
-  fs.writeFileSync(DB_PATH, JSON.stringify(db, null, 2), "utf-8");
+const anyAdminExists = async () => {
+  const snapshot = await firestore
+    .collection(AUTH_COLLECTION)
+    .where("role", "==", "admin")
+    .limit(1)
+    .get();
+  return !snapshot.empty;
 };
 
-const getDb = () => {
-  if (!globalThis.__HR_DB__) {
-    globalThis.__HR_DB__ = loadDb();
+const loadUserDb = async (userId) => {
+  const doc = await getUserDoc(userId).get();
+  if (doc.exists) {
+    return doc.data();
   }
-  return globalThis.__HR_DB__;
+  const seed = createUserSeed();
+  await getUserDoc(userId).set(seed);
+  return seed;
+};
+
+const saveUserDb = async (userId, data) => {
+  await getUserDoc(userId).set(data);
 };
 
 const normalizeName = (value) => (value || "").trim();
@@ -101,6 +93,52 @@ const response = (status, payload, extraHeaders = {}) => ({
   body: JSON.stringify(payload)
 });
 
+const getHeaderValue = (headers, name) => {
+  if (!headers) return "";
+  const match = Object.keys(headers).find((key) => key.toLowerCase() === name.toLowerCase());
+  return match ? headers[match] : "";
+};
+
+const getBearerToken = (headers) => {
+  const authHeader = getHeaderValue(headers, "authorization");
+  if (!authHeader) return "";
+  const match = authHeader.match(/^Bearer\s+(.+)$/i);
+  return match ? match[1] : "";
+};
+
+const getJwtSecret = () => process.env.AUTH_JWT_SECRET || "";
+
+const signToken = (payload) => {
+  const secret = getJwtSecret();
+  if (!secret) {
+    throw new Error("AUTH_JWT_SECRET not set");
+  }
+  return jwt.sign(payload, secret, { expiresIn: "7d" });
+};
+
+const verifyToken = (token) => {
+  const secret = getJwtSecret();
+  if (!secret) {
+    throw new Error("AUTH_JWT_SECRET not set");
+  }
+  return jwt.verify(token, secret);
+};
+
+const isAdminUser = (authUser) => authUser?.role === "admin";
+
+const requireAuth = (headers) => {
+  const token = getBearerToken(headers);
+  if (!token) {
+    return { error: response(401, { error: "Missing Authorization token." }) };
+  }
+  try {
+    const decoded = verifyToken(token);
+    return { user_id: decoded.sub, username: decoded.username, role: decoded.role };
+  } catch (error) {
+    return { error: response(401, { error: "Invalid Authorization token." }) };
+  }
+};
+
 export const stripBase = (path, base) => {
   if (path.startsWith(base)) {
     const sliced = path.slice(base.length);
@@ -109,22 +147,8 @@ export const stripBase = (path, base) => {
   return path;
 };
 
-export const handleApiRequest = ({ method, path, query = {}, body }) => {
-  const db = getDb();
+export const handleApiRequest = async ({ method, path, query = {}, body, headers = {} }) => {
   const upperMethod = (method || "GET").toUpperCase();
-
-  const getUserId = () => normalizeName(body?.user_id || query?.user_id);
-
-  const getUserDb = (userId) => {
-    if (!db.users) {
-      db.users = {};
-    }
-    if (!db.users[userId]) {
-      db.users[userId] = createUserSeed();
-      saveDb(db);
-    }
-    return db.users[userId];
-  };
 
   const ensureLogsSheet = (userDb) => {
     const exists = userDb.sheets.some(
@@ -147,29 +171,165 @@ export const handleApiRequest = ({ method, path, query = {}, body }) => {
       {},
       {
         "Access-Control-Allow-Origin": "*",
-        "Access-Control-Allow-Headers": "Content-Type",
+        "Access-Control-Allow-Headers": "Content-Type, Authorization",
         "Access-Control-Allow-Methods": "GET,POST,OPTIONS"
       }
     );
   }
 
-  if (upperMethod === "GET" && path === "/sheets") {
-    const userId = getUserId();
-    if (!userId) {
-      return response(400, { error: "Missing user_id." });
+  if (upperMethod === "POST" && path === "/auth/login") {
+    const username = normalizeName(body?.username).toLowerCase();
+    const password = body?.password || "";
+    if (!username || !password) {
+      return response(400, { error: "Username and password are required." });
     }
-    const userDb = getUserDb(userId);
+
+    const bootstrapUsername = normalizeName(process.env.ADMIN_BOOTSTRAP_USERNAME).toLowerCase();
+    const bootstrapPassword = process.env.ADMIN_BOOTSTRAP_PASSWORD || "";
+    const isBootstrapAdmin =
+      bootstrapUsername &&
+      bootstrapPassword &&
+      username === bootstrapUsername &&
+      password === bootstrapPassword;
+
+    if (isBootstrapAdmin) {
+      const adminName = bootstrapUsername;
+      const adminId = `bootstrap-${bootstrapUsername}`;
+      const token = signToken({
+        sub: adminId,
+        username: adminName,
+        role: "admin"
+      });
+      return response(200, {
+        token,
+        username: adminName,
+        role: "admin"
+      });
+    }
+    const authUser = await getAuthUser(username);
+    if (!authUser) {
+      return response(401, { error: "Invalid username or password." });
+    }
+    const ok = await bcrypt.compare(password, authUser.password_hash || "");
+    if (!ok) {
+      return response(401, { error: "Invalid username or password." });
+    }
+    try {
+      const token = signToken({
+        sub: authUser.user_id,
+        username: authUser.username,
+        role: authUser.role || "client"
+      });
+      return response(200, {
+        token,
+        username: authUser.username,
+        role: authUser.role || "client"
+      });
+    } catch (error) {
+      return response(500, { error: "Auth configuration missing." });
+    }
+  }
+
+  if (upperMethod === "POST" && path === "/admin-api/bootstrap") {
+    const setupToken = normalizeName(body?.setup_token);
+    const expected = normalizeName(process.env.ADMIN_SETUP_TOKEN);
+    if (!expected || setupToken !== expected) {
+      return response(403, { error: "Invalid setup token." });
+    }
+    if (await anyAdminExists()) {
+      return response(409, { error: "Admin already exists." });
+    }
+    const username = normalizeName(body?.username).toLowerCase();
+    const password = body?.password || "";
+    if (!username || !password) {
+      return response(400, { error: "Username and password are required." });
+    }
+    if (password.length < 6) {
+      return response(400, { error: "Password should be at least 6 characters." });
+    }
+    const existing = await getAuthUser(username);
+    if (existing) {
+      return response(409, { error: "Username already exists." });
+    }
+    const hash = await bcrypt.hash(password, 10);
+    const userId = `user-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+    await getAuthDoc(username).set({
+      username,
+      password_hash: hash,
+      role: "admin",
+      user_id: userId,
+      created_at: new Date().toISOString()
+    });
+    return response(200, { ok: true, username });
+  }
+
+  const authResult = await requireAuth(headers);
+  if (authResult.error) {
+    return authResult.error;
+  }
+
+  if (upperMethod === "GET" && path === "/auth/me") {
+    return response(200, {
+      user_id: authResult.user_id,
+      username: authResult.username,
+      role: authResult.role
+    });
+  }
+
+  if (upperMethod === "GET" && path === "/admin-api/status") {
+    return response(200, { is_admin: isAdminUser(authResult) });
+  }
+
+  if (upperMethod === "POST" && path === "/admin-api/create-user") {
+    if (!isAdminUser(authResult)) {
+      return response(403, { error: "Admin access required." });
+    }
+    const username = normalizeName(body?.username).toLowerCase();
+    const password = body?.password || "";
+    const clientName = normalizeName(body?.client_name || body?.clientName);
+    if (!username || !password) {
+      return response(400, { error: "Username and password are required." });
+    }
+    if (password.length < 6) {
+      return response(400, { error: "Password should be at least 6 characters." });
+    }
+    try {
+      const existing = await getAuthUser(username);
+      if (existing) {
+        return response(409, { error: "Username already exists." });
+      }
+      const hash = await bcrypt.hash(password, 10);
+      const userId = `user-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+      await getAuthDoc(username).set({
+        username,
+        password_hash: hash,
+        role: "client",
+        user_id: userId,
+        created_at: new Date().toISOString()
+      });
+      const seed = createUserSeed(clientName);
+      await getUserDoc(userId).set(seed);
+      return response(200, {
+        user_id: userId,
+        username,
+        client_name: clientName
+      });
+    } catch (error) {
+      return response(500, { error: "Failed to create user." });
+    }
+  }
+
+  const userId = authResult.user_id;
+
+  if (upperMethod === "GET" && path === "/sheets") {
+    const userDb = await loadUserDb(userId);
     ensureLogsSheet(userDb);
-    saveDb(db);
+    await saveUserDb(userId, userDb);
     return response(200, { sheets: userDb.sheets });
   }
 
   if (upperMethod === "POST" && path === "/sheets/create") {
-    const userId = getUserId();
-    if (!userId) {
-      return response(400, { error: "Missing user_id." });
-    }
-    const userDb = getUserDb(userId);
+    const userDb = await loadUserDb(userId);
     const name = normalizeName(body?.name);
     if (!name) {
       return response(400, { error: "Sheet name is required." });
@@ -183,16 +343,12 @@ export const handleApiRequest = ({ method, path, query = {}, body }) => {
     userDb.sheets.push(sheet);
     userDb.nursesBySheet[sheet.sheet_id] = [];
     userDb.shiftsBySheet[sheet.sheet_id] = [];
-    saveDb(db);
+    await saveUserDb(userId, userDb);
     return response(200, { sheet });
   }
 
   if (upperMethod === "POST" && path === "/sheets/duplicate") {
-    const userId = getUserId();
-    if (!userId) {
-      return response(400, { error: "Missing user_id." });
-    }
-    const userDb = getUserDb(userId);
+    const userDb = await loadUserDb(userId);
     const sourceId = body?.sheet_id;
     const source = userDb.sheets.find((sheet) => sheet.sheet_id === sourceId);
     if (!source) {
@@ -207,16 +363,12 @@ export const handleApiRequest = ({ method, path, query = {}, body }) => {
     userDb.sheets.push(sheet);
     userDb.nursesBySheet[sheet.sheet_id] = clone(userDb.nursesBySheet[sourceId] || []);
     userDb.shiftsBySheet[sheet.sheet_id] = clone(userDb.shiftsBySheet[sourceId] || []);
-    saveDb(db);
+    await saveUserDb(userId, userDb);
     return response(200, { sheet });
   }
 
   if (upperMethod === "POST" && path === "/sheets/rename") {
-    const userId = getUserId();
-    if (!userId) {
-      return response(400, { error: "Missing user_id." });
-    }
-    const userDb = getUserDb(userId);
+    const userDb = await loadUserDb(userId);
     const name = normalizeName(body?.name);
     if (!body?.sheet_id || !name) {
       return response(400, { error: "Sheet id and name are required." });
@@ -226,16 +378,32 @@ export const handleApiRequest = ({ method, path, query = {}, body }) => {
       return response(404, { error: "Sheet not found." });
     }
     target.name = name;
-    saveDb(db);
+    await saveUserDb(userId, userDb);
     return response(200, { sheet_id: target.sheet_id, name: target.name });
   }
 
-  if (upperMethod === "GET" && path === "/schedule") {
-    const userId = getUserId();
-    if (!userId) {
-      return response(400, { error: "Missing user_id." });
+  if (upperMethod === "POST" && path === "/sheets/delete") {
+    const userDb = await loadUserDb(userId);
+    const sheetId = body?.sheet_id;
+    if (!sheetId) {
+      return response(400, { error: "Sheet id is required." });
     }
-    const userDb = getUserDb(userId);
+    const target = userDb.sheets.find((sheet) => sheet.sheet_id === sheetId);
+    if (!target) {
+      return response(404, { error: "Sheet not found." });
+    }
+    if (sheetId === "logs" || (target.name || "").toLowerCase() === "logs") {
+      return response(403, { error: "The Logs sheet cannot be deleted." });
+    }
+    userDb.sheets = userDb.sheets.filter((sheet) => sheet.sheet_id !== sheetId);
+    delete userDb.nursesBySheet[sheetId];
+    delete userDb.shiftsBySheet[sheetId];
+    await saveUserDb(userId, userDb);
+    return response(200, { ok: true, deleted: sheetId });
+  }
+
+  if (upperMethod === "GET" && path === "/schedule") {
+    const userDb = await loadUserDb(userId);
     const sheetId = query.sheet_id;
     const start = query.start;
     const end = query.end;
@@ -254,11 +422,7 @@ export const handleApiRequest = ({ method, path, query = {}, body }) => {
   }
 
   if (upperMethod === "POST" && path === "/nurses/upsert") {
-    const userId = getUserId();
-    if (!userId) {
-      return response(400, { error: "Missing user_id." });
-    }
-    const userDb = getUserDb(userId);
+    const userDb = await loadUserDb(userId);
     const sheetId = body?.sheet_id;
     const rows = body?.nurses || (body?.nurse ? [body.nurse] : []);
     if (!sheetId || rows.length === 0) {
@@ -277,16 +441,12 @@ export const handleApiRequest = ({ method, path, query = {}, body }) => {
       }
     });
     userDb.nursesBySheet[sheetId] = list;
-    saveDb(db);
+    await saveUserDb(userId, userDb);
     return response(200, { ok: true, nurses: rows });
   }
 
   if (upperMethod === "POST" && path === "/nurses/delete") {
-    const userId = getUserId();
-    if (!userId) {
-      return response(400, { error: "Missing user_id." });
-    }
-    const userDb = getUserDb(userId);
+    const userDb = await loadUserDb(userId);
     const sheetId = body?.sheet_id;
     const nurseIds = body?.nurse_ids || [];
     if (!sheetId || nurseIds.length === 0) {
@@ -298,16 +458,12 @@ export const handleApiRequest = ({ method, path, query = {}, body }) => {
     userDb.shiftsBySheet[sheetId] = (userDb.shiftsBySheet[sheetId] || []).filter(
       (shift) => !nurseIds.includes(shift.nurse_id)
     );
-    saveDb(db);
+    await saveUserDb(userId, userDb);
     return response(200, { ok: true });
   }
 
   if (upperMethod === "POST" && path === "/schedule/update") {
-    const userId = getUserId();
-    if (!userId) {
-      return response(400, { error: "Missing user_id." });
-    }
-    const userDb = getUserDb(userId);
+    const userDb = await loadUserDb(userId);
     const sheetId = body?.sheet_id;
     const nurseId = body?.nurse_id;
     const date = body?.date;
@@ -330,7 +486,7 @@ export const handleApiRequest = ({ method, path, query = {}, body }) => {
       current.push({ nurse_id: nurseId, date, shift: trimmedShift });
     }
     userDb.shiftsBySheet[sheetId] = current;
-    saveDb(db);
+    await saveUserDb(userId, userDb);
     return response(200, { ok: true });
   }
 
@@ -346,7 +502,9 @@ export const createViteMiddleware = () => {
       !(
         path.startsWith("/sheets") ||
         path.startsWith("/schedule") ||
-        path.startsWith("/nurses")
+        path.startsWith("/nurses") ||
+        path.startsWith("/admin-api") ||
+        path.startsWith("/auth")
       )
     ) {
       next();
@@ -363,11 +521,12 @@ export const createViteMiddleware = () => {
       body = raw ? JSON.parse(raw) : null;
     }
 
-    const result = handleApiRequest({
+    const result = await handleApiRequest({
       method: req.method,
       path,
       query: Object.fromEntries(url.searchParams.entries()),
-      body
+      body,
+      headers: req.headers
     });
 
     res.statusCode = result.status;

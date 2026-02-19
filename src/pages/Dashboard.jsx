@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import SchedulerGrid from "../components/SchedulerGrid.jsx";
 import SheetGrid from "../components/SheetGrid.jsx";
+import { authedFetch } from "../utils/api.js";
 
 const SHIFT_TYPES = ["LD", "E", "N", "AE"];
 const LOG_COLUMNS = ["Column A", "Column B", "Column C", "Column D", "Column E", "Column F"];
@@ -55,6 +56,7 @@ export default function Dashboard() {
   const [status, setStatus] = useState({ state: "loading", message: "Loading data..." });
   const [nurses, setNurses] = useState([]);
   const [shifts, setShifts] = useState({});
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const sheetCacheRef = useRef(new Map());
   const lastLocalUpdateRef = useRef({});
   const lastServerSyncRef = useRef({});
@@ -68,15 +70,8 @@ export default function Dashboard() {
     future.setDate(future.getDate() + 30);
     return toInputDate(future);
   });
-  const userId = useMemo(() => {
-    try {
-      const stored = localStorage.getItem("hr_auth");
-      const parsed = stored ? JSON.parse(stored) : {};
-      return (parsed?.user || "").trim();
-    } catch (error) {
-      return "";
-    }
-  }, []);
+  const [userId, setUserId] = useState("");
+  const [isAdmin, setIsAdmin] = useState(false);
   const navigate = useNavigate();
 
   const markLocalUpdate = () => {
@@ -91,16 +86,52 @@ export default function Dashboard() {
   };
 
   useEffect(() => {
-    const auth = localStorage.getItem("hr_auth");
-    if (!auth) {
-      navigate("/login");
-    }
+    let isActive = true;
+
+    const loadSession = async () => {
+      try {
+        const response = await authedFetch("/auth/me");
+        if (!response.ok) {
+          throw new Error("Unauthorized");
+        }
+        const payload = await response.json();
+        if (!isActive) return;
+        setUserId(payload?.user_id || "");
+        setIsAdmin(payload?.role === "admin");
+        localStorage.setItem(
+          "hr_auth",
+          JSON.stringify({ username: payload?.username, role: payload?.role })
+        );
+      } catch (error) {
+        if (!isActive) return;
+        setUserId("");
+        setIsAdmin(false);
+        localStorage.removeItem("hr_auth");
+        localStorage.removeItem("hr_token");
+        navigate("/login");
+      }
+    };
+
+    loadSession();
+    return () => {
+      isActive = false;
+    };
   }, [navigate]);
+
+  const handleLogout = async () => {
+    try {
+      localStorage.removeItem("hr_token");
+      localStorage.removeItem("hr_auth");
+      navigate("/login");
+    } catch (error) {
+      setStatus({ state: "error", message: "Logout failed." });
+    }
+  };
 
   useEffect(() => {
     const fetchSheets = async () => {
       try {
-        const response = await fetch(`/sheets?user_id=${encodeURIComponent(userId)}`);
+        const response = await authedFetch("/sheets");
         const payload = await response.json();
         const list = payload?.sheets || [];
         const hasLogs = list.some((sheet) => (sheet.name || "").toLowerCase() === "logs");
@@ -149,10 +180,8 @@ export default function Dashboard() {
     const fetchSchedule = async () => {
       setStatus({ state: "loading", message: "Loading schedule..." });
       try {
-        const response = await fetch(
-          `/schedule?start=${startDate}&end=${endDate}&sheet_id=${activeSheetId}&user_id=${encodeURIComponent(
-            userId
-          )}`,
+        const response = await authedFetch(
+          `/schedule?start=${startDate}&end=${endDate}&sheet_id=${activeSheetId}`,
           { signal: controller.signal }
         );
         if (!response.ok) {
@@ -222,15 +251,14 @@ export default function Dashboard() {
     const sheetId = activeSheetId;
     setShifts((prev) => ({ ...prev, [`${nurseId}_${dateKey}`]: shift }));
     try {
-      await fetch("/schedule/update", {
+      await authedFetch("/schedule/update", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           sheet_id: sheetId,
           nurse_id: nurseId,
           date: dateKey,
-          shift,
-          user_id: userId
+          shift
         })
       });
       markServerSync(sheetId);
@@ -253,15 +281,14 @@ export default function Dashboard() {
     try {
       await Promise.all(
         updates.map((update) =>
-          fetch("/schedule/update", {
+          authedFetch("/schedule/update", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
               sheet_id: sheetId,
               nurse_id: update.nurseId,
               date: update.dateKey,
-              shift: update.shift,
-              user_id: userId
+              shift: update.shift
             })
           })
         )
@@ -300,10 +327,10 @@ export default function Dashboard() {
     if (!activeSheetId || !rows || rows.length === 0) return;
     const sheetId = activeSheetId;
     try {
-      await fetch("/nurses/upsert", {
+      await authedFetch("/nurses/upsert", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ sheet_id: sheetId, nurses: rows, user_id: userId })
+        body: JSON.stringify({ sheet_id: sheetId, nurses: rows })
       });
       markServerSync(sheetId);
     } catch (error) {
@@ -315,10 +342,10 @@ export default function Dashboard() {
     const active = sheets.find((sheet) => sheet.sheet_id === activeSheetId);
     if (!active) return;
     try {
-      const response = await fetch("/sheets/duplicate", {
+      const response = await authedFetch("/sheets/duplicate", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ sheet_id: active.sheet_id, user_id: userId })
+        body: JSON.stringify({ sheet_id: active.sheet_id })
       });
       if (!response.ok) {
         throw new Error("Duplicate failed");
@@ -336,6 +363,38 @@ export default function Dashboard() {
       dataSheetIdRef.current = created.sheet_id;
     } catch (error) {
       setStatus({ state: "error", message: "Failed to duplicate sheet." });
+    }
+  };
+
+  const handleDeleteSheet = async () => {
+    const active = sheets.find((sheet) => sheet.sheet_id === activeSheetId);
+    if (!active) return;
+    if (active.sheet_id === "logs" || (active.name || "").toLowerCase() === "logs") return;
+    try {
+      const response = await authedFetch("/sheets/delete", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ sheet_id: active.sheet_id })
+      });
+      if (!response.ok) {
+        throw new Error("Delete failed");
+      }
+      sheetCacheRef.current.delete(active.sheet_id);
+      delete lastLocalUpdateRef.current[active.sheet_id];
+      delete lastServerSyncRef.current[active.sheet_id];
+      const remaining = sheets.filter((s) => s.sheet_id !== active.sheet_id);
+      setSheets(remaining);
+      if (remaining.length > 0) {
+        setActiveSheetId(remaining[0].sheet_id);
+        setSheetName(remaining[0].name);
+      }
+      setNurses(padRows([]));
+      setShifts({});
+      dataSheetIdRef.current = remaining.length > 0 ? remaining[0].sheet_id : null;
+      setShowDeleteConfirm(false);
+    } catch (error) {
+      setStatus({ state: "error", message: "Failed to delete sheet." });
+      setShowDeleteConfirm(false);
     }
   };
 
@@ -420,10 +479,10 @@ export default function Dashboard() {
     });
     setSelectedRowIds([]);
     try {
-      await fetch("/nurses/delete", {
+      await authedFetch("/nurses/delete", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ sheet_id: sheetId, nurse_ids: rowIds, user_id: userId })
+        body: JSON.stringify({ sheet_id: sheetId, nurse_ids: rowIds })
       });
       markServerSync(sheetId);
     } catch (error) {
@@ -467,10 +526,10 @@ export default function Dashboard() {
     const next = nurses.filter((_, index) => index !== rowIndex);
     setNurses(next);
     if (!row?.id) return;
-    fetch("/nurses/delete", {
+    authedFetch("/nurses/delete", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ sheet_id: sheetId, nurse_ids: [row.id], user_id: userId })
+      body: JSON.stringify({ sheet_id: sheetId, nurse_ids: [row.id] })
     })
       .then(() => {
         markServerSync(sheetId);
@@ -487,10 +546,10 @@ export default function Dashboard() {
     if (!trimmed) return;
     if (active && (active.name || "").trim() === trimmed) return;
     try {
-      const response = await fetch("/sheets/rename", {
+      const response = await authedFetch("/sheets/rename", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ sheet_id: activeSheetId, name: trimmed, user_id: userId })
+        body: JSON.stringify({ sheet_id: activeSheetId, name: trimmed })
       });
       if (!response.ok) {
         throw new Error("Rename failed");
@@ -520,7 +579,17 @@ export default function Dashboard() {
             <h1>Shift Monitoring Sheets</h1>
             <p className="lead">Schedule matrix with real-time updates.</p>
           </div>
-          {status.message && <div className="status-pill">{status.message}</div>}
+          <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+            {status.message && <div className="status-pill">{status.message}</div>}
+            {isAdmin && (
+              <button className="btn btn-outline" type="button" onClick={() => navigate("/admin")}>
+                Admin
+              </button>
+            )}
+            <button className="btn btn-outline" type="button" onClick={handleLogout}>
+              Sign out
+            </button>
+          </div>
         </div>
       </section>
 
@@ -548,6 +617,15 @@ export default function Dashboard() {
               onClick={handleDuplicateSheet}
             >
               Duplicate
+            </button>
+            <button
+              className="sheet-tab"
+              type="button"
+              style={{ color: "#dc3545" }}
+              disabled={isLogsSheet}
+              onClick={() => setShowDeleteConfirm(true)}
+            >
+              Delete Sheet
             </button>
           </div>
 
@@ -635,6 +713,42 @@ export default function Dashboard() {
           </div>
         </div>
       </section>
+
+      {showDeleteConfirm && (
+        <div className="modal-backdrop" onClick={() => setShowDeleteConfirm(false)}>
+          <div className="modal-card" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header">
+              <h3>Delete Sheet</h3>
+              <button
+                className="modal-close"
+                type="button"
+                onClick={() => setShowDeleteConfirm(false)}
+              >
+                ✕
+              </button>
+            </div>
+            <p style={{ marginBottom: "16px" }}>
+              Are you sure you want to delete <strong>{activeSheet?.name}</strong>? This will permanently remove all nurses and shift data for this sheet. This action cannot be undone.
+            </p>
+            <div style={{ display: "flex", gap: "12px", justifyContent: "flex-end" }}>
+              <button
+                className="btn btn-outline"
+                type="button"
+                onClick={() => setShowDeleteConfirm(false)}
+              >
+                Cancel
+              </button>
+              <button
+                className="btn btn-danger"
+                type="button"
+                onClick={handleDeleteSheet}
+              >
+                Delete
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </>
   );
 }

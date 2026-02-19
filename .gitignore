@@ -3,8 +3,13 @@ dist/
 .netlify/
 .env
 .env.*
-!.env.example
+.env.example
+.env.local
+*-firebase-adminsdk-*.json
 .DS_Store
 *.log
 scripts/data/db.json
 scripts\data\db.json
+.healthroster-automation-firebase-adminsdk-*.json
+.health-roaster-firebase-adminsdk-fbsvc-c0392685f9.json
+sheet.csv

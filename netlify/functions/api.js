@@ -7,11 +7,12 @@ export const handler = async (event) => {
   const body = event.body ? JSON.parse(event.body) : null;
   const query = event.queryStringParameters || {};
 
-  const result = handleApiRequest({
+  const result = await handleApiRequest({
     method: event.httpMethod,
     path,
     query,
-    body
+    body,
+    headers: event.headers
   });
 
   return {
