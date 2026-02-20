@@ -13,3 +13,4 @@ scripts\data\db.json
 .healthroster-automation-firebase-adminsdk-*.json
 .health-roaster-firebase-adminsdk-fbsvc-c0392685f9.json
 sheet.csv
+app-spec.yaml

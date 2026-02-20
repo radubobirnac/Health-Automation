@@ -1,6 +1,21 @@
-# Netlify Environment Variables
+# DigitalOcean App Platform Environment Variables
 
-Set these variables in Netlify site settings:
+Set these variables in the DigitalOcean App Platform dashboard:
+
+## Firebase (single JSON env var)
+
+- `FIREBASE_SERVICE_ACCOUNT_JSON`
+  - Paste the full Firebase service-account JSON as a single string.
+  - Keep `\n` line breaks in `private_key` (do not paste raw multi-line PEM).
+
+## API auth + admin bootstrap
+
+- `AUTH_JWT_SECRET`
+- `ADMIN_SETUP_TOKEN`
+- `ADMIN_BOOTSTRAP_USERNAME`
+- `ADMIN_BOOTSTRAP_PASSWORD`
+
+## Email (contact form)
 
 - `SMTP_HOST` (example: `smtp.gmail.com`)
 - `SMTP_PORT` (example: `465` for SSL, `587` for TLS)
@@ -13,18 +28,5 @@ Local development:
 
 - Copy `.env.example` to `.env` and set values.
 - Do not commit `.env`.
-
-# Netlify Deploy Settings
-
-Use these settings when creating/importing the site on Netlify:
-
-- Repo: `radubobirnac/Health-Automation`
-- Branch to deploy: `main`
-- Base directory: leave empty
-- Build command: `npm run build`
-- Publish directory: `dist`
-- Functions directory: `netlify/functions`
-
-If the preferred site name is unavailable, choose a unique variant.
 
 See `DEPLOYMENT_WORKFLOW.md` for the full end-to-end process.

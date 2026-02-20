@@ -1,0 +1,43 @@
+name: healthroster-automation
+services:
+  - name: web
+    github:
+      repo: radubobirnac/Health-Automation
+      branch: main
+    environment_slug: node-js
+    instance_count: 1
+    instance_size_slug: basic-xxs
+    build_command: npm run build
+    run_command: npm start
+    http_port: 8080
+    envs:
+      - key: NODE_ENV
+        value: production
+      - key: FIREBASE_SERVICE_ACCOUNT_JSON
+        scope: RUN_TIME
+        type: SECRET
+      - key: AUTH_JWT_SECRET
+        scope: RUN_TIME
+        type: SECRET
+      - key: ADMIN_SETUP_TOKEN
+        scope: RUN_TIME
+        type: SECRET
+      - key: ADMIN_BOOTSTRAP_USERNAME
+        scope: RUN_TIME
+        type: SECRET
+      - key: ADMIN_BOOTSTRAP_PASSWORD
+        scope: RUN_TIME
+        type: SECRET
+      - key: SMTP_HOST
+        scope: RUN_TIME
+      - key: SMTP_PORT
+        scope: RUN_TIME
+      - key: SMTP_USER
+        scope: RUN_TIME
+      - key: SMTP_PASS
+        scope: RUN_TIME
+        type: SECRET
+      - key: SMTP_FROM
+        scope: RUN_TIME
+      - key: SMTP_SECURE
+        scope: RUN_TIME
