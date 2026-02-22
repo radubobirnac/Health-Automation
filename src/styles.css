@@ -152,6 +152,13 @@ body {
   background: transparent;
 }
 
+.theme-toggle {
+  padding: 10px;
+  width: 42px;
+  height: 42px;
+  flex-shrink: 0;
+}
+
 .btn-danger {
   background: #dc3545;
   color: var(--text-on-accent);
