@@ -84,6 +84,7 @@ export default function Dashboard() {
     if (!sheetId) return;
     lastServerSyncRef.current[sheetId] = Date.now();
   };
+  //useeffect 
 
   useEffect(() => {
     let isActive = true;
