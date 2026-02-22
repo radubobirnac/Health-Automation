@@ -18,7 +18,7 @@ const buildDateRange = (start, end) => {
 };
 
 const toInputDate = (date) => date.toISOString().slice(0, 10);
-const MIN_ROWS = 50;
+const MIN_ROWS = 15;
 
 const padRows = (rows) => {
   const next = [...rows];
@@ -118,16 +118,6 @@ export default function Dashboard() {
     };
   }, [navigate]);
 
-  const handleLogout = async () => {
-    try {
-      localStorage.removeItem("hr_token");
-      localStorage.removeItem("hr_auth");
-      navigate("/login");
-    } catch (error) {
-      setStatus({ state: "error", message: "Logout failed." });
-    }
-  };
-
   useEffect(() => {
     const fetchSheets = async () => {
       try {
@@ -213,7 +203,7 @@ export default function Dashboard() {
             setShifts({});
           }
         }
-        setStatus({ state: "success", message: "Schedule loaded." });
+        setStatus({ state: "success", message: "" });
       } catch (error) {
         if (!isCurrent || error.name === "AbortError") return;
         setStatus({ state: "error", message: "Unable to load schedule." });
@@ -302,9 +292,7 @@ export default function Dashboard() {
   const handleAddRow = () => {
     markLocalUpdate();
     const newRow = createEmptyRow();
-    setNurses((prev) =>
-      padRows([...prev, newRow])
-    );
+    setNurses((prev) => padRows([...prev, newRow]));
     saveNurses([newRow]);
   };
 
@@ -462,41 +450,6 @@ export default function Dashboard() {
     });
   };
 
-  const deleteRows = async (rowIds) => {
-    if (!rowIds.length) return;
-    markLocalUpdate();
-    const sheetId = activeSheetId;
-    setNurses((prev) => padRows(prev.filter((nurse) => !rowIds.includes(nurse.id))));
-    setShifts((prev) => {
-      const next = {};
-      Object.entries(prev).forEach(([key, value]) => {
-        const [nurseId] = key.split("_");
-        if (!rowIds.includes(nurseId)) {
-          next[key] = value;
-        }
-      });
-      return next;
-    });
-    setSelectedRowIds([]);
-    try {
-      await authedFetch("/nurses/delete", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ sheet_id: sheetId, nurse_ids: rowIds })
-      });
-      markServerSync(sheetId);
-    } catch (error) {
-      setStatus({ state: "error", message: "Failed to delete rows." });
-    }
-  };
-
-  const handleDeleteSelectedRows = () => {
-    deleteRows(selectedRowIds);
-  };
-
-  const handleDeleteRow = (rowId) => {
-    deleteRows([rowId]);
-  };
 
   const ensureLogRowIds = (rows) => {
     return rows.map((row) => (row?.id ? row : { id: createEmptyRow().id, ...row }));
@@ -520,24 +473,6 @@ export default function Dashboard() {
     saveNurses([newRow]);
   };
 
-  const handleLogsDeleteRow = (rowIndex, row) => {
-    markLocalUpdate();
-    const sheetId = activeSheetId;
-    const next = nurses.filter((_, index) => index !== rowIndex);
-    setNurses(next);
-    if (!row?.id) return;
-    authedFetch("/nurses/delete", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ sheet_id: sheetId, nurse_ids: [row.id] })
-    })
-      .then(() => {
-        markServerSync(sheetId);
-      })
-      .catch(() => {
-      setStatus({ state: "error", message: "Failed to delete rows." });
-    });
-  };
 
   const handleRename = async (overrideName) => {
     if (!activeSheetId) return;
@@ -586,14 +521,11 @@ export default function Dashboard() {
                 Admin
               </button>
             )}
-            <button className="btn btn-outline" type="button" onClick={handleLogout}>
-              Sign out
-            </button>
           </div>
         </div>
       </section>
 
-      <section className="section">
+      <section className="section dashboard-section">
         <div className="container dashboard-container">
           <div className="sheet-tabs">
             {sheets.map((sheet) => (
@@ -647,7 +579,7 @@ export default function Dashboard() {
                     }}
                   />
                 </div>
-                <div className="sheet-field">
+                <div className="sheet-field sheet-field-compact">
                   <label>Start date</label>
                   <input
                     type="date"
@@ -655,7 +587,7 @@ export default function Dashboard() {
                     onChange={(event) => setStartDate(event.target.value)}
                   />
                 </div>
-                <div className="sheet-field">
+                <div className="sheet-field sheet-field-compact">
                   <label>End date</label>
                   <input
                     type="date"
@@ -672,21 +604,12 @@ export default function Dashboard() {
                 >
                   Add row
                 </button>
-                <button
-                  className="btn btn-outline"
-                  type="button"
-                  onClick={handleDeleteSelectedRows}
-                  disabled={isLogsSheet || !selectedRowIds.length}
-                >
-                  Delete selected
-                </button>
               </div>
               {isLogsSheet ? (
                 <SheetGrid
                   columns={LOG_COLUMNS}
                   rows={nurses}
                   onRowsChange={handleLogsRowsChange}
-                  onDeleteRow={handleLogsDeleteRow}
                   showControls={false}
                 />
               ) : (
@@ -705,8 +628,6 @@ export default function Dashboard() {
                   selectedRowIds={selectedRowIds}
                   onToggleRow={handleToggleRow}
                   onToggleAllRows={handleToggleAllRows}
-                  onDeleteRows={handleDeleteSelectedRows}
-                  onDeleteRow={handleDeleteRow}
                 />
               )}
             </div>

@@ -16,7 +16,6 @@ export default function SheetGrid({
   columns,
   rows,
   onRowsChange,
-  onDeleteRow,
   showControls = true
 }) {
   const handleChange = (rowIndex, key, value) => {
@@ -105,7 +104,6 @@ export default function SheetGrid({
               {columns.map((column) => (
                 <th key={column}>{column}</th>
               ))}
-              {onDeleteRow && <th>Actions</th>}
             </tr>
           </thead>
           <tbody>
@@ -132,17 +130,6 @@ export default function SheetGrid({
                     </td>
                   );
                 })}
-                {onDeleteRow && (
-                  <td>
-                    <button
-                      type="button"
-                      className="btn btn-outline row-delete-btn"
-                      onClick={() => onDeleteRow(rowIndex, row)}
-                    >
-                      Delete row
-                    </button>
-                  </td>
-                )}
               </tr>
             ))}
           </tbody>

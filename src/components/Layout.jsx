@@ -1,6 +1,32 @@
-import { Link } from "react-router-dom";
+import { useEffect, useMemo, useState } from "react";
+import { Link, useLocation, useNavigate } from "react-router-dom";
+
+const THEME_STORAGE_KEY = "hr_theme";
+
+const getInitialTheme = () => {
+  const stored = localStorage.getItem(THEME_STORAGE_KEY);
+  return stored === "light" || stored === "dark" ? stored : "dark";
+};
 
 export default function Layout({ children }) {
+  const [theme, setTheme] = useState(getInitialTheme);
+  const navigate = useNavigate();
+  const location = useLocation();
+  const isAuthed = useMemo(() => Boolean(localStorage.getItem("hr_token")), [location.pathname]);
+
+  useEffect(() => {
+    const root = document.documentElement;
+    root.dataset.theme = theme;
+    root.style.colorScheme = theme;
+    localStorage.setItem(THEME_STORAGE_KEY, theme);
+  }, [theme]);
+
+  const handleSignOff = () => {
+    localStorage.removeItem("hr_token");
+    localStorage.removeItem("hr_auth");
+    navigate("/login");
+  };
+
   return (
     <>
       <header className="site-header">
@@ -22,9 +48,22 @@ export default function Layout({ children }) {
             <Link className="btn btn-outline" to="/contact">
               Book a Free Demo
             </Link>
-            <Link className="btn btn-primary" to="/login">
-              Sign in
-            </Link>
+            <button
+              className="btn btn-outline"
+              type="button"
+              onClick={() => setTheme((prev) => (prev === "dark" ? "light" : "dark"))}
+            >
+              {theme === "dark" ? "Light Mode" : "Dark Mode"}
+            </button>
+            {isAuthed ? (
+              <button className="btn btn-primary" type="button" onClick={handleSignOff}>
+                Sign-Off
+              </button>
+            ) : (
+              <Link className="btn btn-primary" to="/login">
+                Sign-In
+              </Link>
+            )}
           </div>
         </div>
       </header>

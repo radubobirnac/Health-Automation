@@ -28,8 +28,6 @@ export default function SchedulerGrid({
   selectedRowIds,
   onToggleRow,
   onToggleAllRows,
-  onDeleteRows,
-  onDeleteRow,
   onNurseCommit,
   onBulkNurseCommit,
   onEnsureRows
@@ -213,174 +211,169 @@ export default function SchedulerGrid({
 
   return (
     <div className="scheduler-card">
-      <div className="scheduler-toolbar">
-        <button
-          type="button"
-          className="btn btn-outline"
-          onClick={() => {
-            if (!selectedRowIds?.length) return;
-            if (onDeleteRows) {
-              onDeleteRows(selectedRowIds);
-              return;
-            }
-            if (onDeleteRow) {
-              selectedRowIds.forEach((rowId) => onDeleteRow(rowId));
-            }
-          }}
-          disabled={!selectedRowIds?.length}
-        >
-          Delete Selected Rows
-        </button>
-      </div>
-      <div className="scheduler-table-wrapper">
-        <table
-          className="scheduler-table"
-          onCopy={(event) => {
-            if (!selectedRowIds?.length) return;
-            const rowsToCopy = nurses.filter((nurse) => selectedRowIndexSet.has(nurse.id));
-            if (!rowsToCopy.length) return;
-            const text = rowsToCopy
-              .map((nurse) => {
-                const leftValues = LEFT_COLUMNS.map((col) => nurse[col.key] ?? "");
-                const shiftValues = dateKeys.map(
-                  (dateKey) => shifts[`${nurse.id}_${dateKey}`] ?? ""
-                );
-                return [...leftValues, ...shiftValues].join("\t");
-              })
-              .join("\n");
-            event.preventDefault();
-            event.clipboardData.setData("text/plain", text);
-            event.clipboardData.setData("text", text);
-          }}
-        >
-          <thead>
-            <tr>
-              <th className="sticky-col col-select">
-                <input
-                  type="checkbox"
-                  checked={nurses.length > 0 && selectedRowIds?.length === nurses.length}
-                  onChange={() => onToggleAllRows?.()}
-                  aria-label="Select all rows"
-                />
-              </th>
-              {LEFT_COLUMNS.map((col) => (
-                <th key={col.key} className={`sticky-col ${col.className}`}>
-                  {col.label}
-                </th>
-              ))}
-              {dates.map((date) => (
-                <th key={`weekday-${date.toISOString()}`} className="date-col weekday-header">
-                  {formatWeekday(date)}
-                </th>
-              ))}
-              <th className="row-actions-header">Actions</th>
-            </tr>
-            <tr>
-              <th className="sticky-col col-select">
-                <span className="header-spacer" />
-              </th>
-              {LEFT_COLUMNS.map((col) => (
-                <th key={`${col.key}-spacer`} className={`sticky-col ${col.className}`}>
-                  <span className="header-spacer" />
-                </th>
-              ))}
-              {dates.map((date) => (
-                <th key={`date-${date.toISOString()}`} className="date-col date-header">
-                  {formatDateLabel(date)}
-                </th>
-              ))}
-              <th className="row-actions-header">
-                <span className="header-spacer" />
-              </th>
-            </tr>
-          </thead>
-          <tbody>
-            {nurses.map((nurse, rowIndex) => (
-              <tr
-                key={nurse.id}
-                className={selectedRowIndexSet.has(nurse.id) ? "row-selected" : undefined}
-              >
-                <td className="sticky-col col-select">
-                  <input
-                    type="checkbox"
-                    checked={selectedRowIds?.includes(nurse.id) ?? false}
-                    onChange={() => onToggleRow?.(nurse.id)}
-                    aria-label={`Select row ${rowIndex + 1}`}
-                  />
-                </td>
-                {LEFT_COLUMNS.map((col, colIndex) => (
-                  <td key={`${nurse.id}-${col.key}`} className={`sticky-col ${col.className}`}>
+      <div
+        className="scheduler-table-wrapper"
+        onCopy={(event) => {
+          if (!selectedRowIds?.length) return;
+          const rowsToCopy = nurses.filter((nurse) => selectedRowIndexSet.has(nurse.id));
+          if (!rowsToCopy.length) return;
+          const text = rowsToCopy
+            .map((nurse) => {
+              const leftValues = LEFT_COLUMNS.map((col) => nurse[col.key] ?? "");
+              const shiftValues = dateKeys.map(
+                (dateKey) => shifts[`${nurse.id}_${dateKey}`] ?? ""
+              );
+              return [...leftValues, ...shiftValues].join("\t");
+            })
+            .join("\n");
+          event.preventDefault();
+          event.clipboardData.setData("text/plain", text);
+          event.clipboardData.setData("text", text);
+        }}
+      >
+        <div className="scheduler-table-layout">
+          <div className="scheduler-table-fixed">
+            <table className="scheduler-table scheduler-table-fixed">
+              <thead>
+                <tr>
+                  <th className="col-select">
                     <input
-                      type="text"
-                      value={nurse[col.key] ?? ""}
-                      onChange={(event) =>
-                        onNurseChange?.(nurse.id, col.key, event.target.value)
-                      }
-                      onBlur={() => onNurseCommit?.(nurse)}
-                      onPaste={(event) => {
-                        const pasteText = event.clipboardData.getData("text");
-                        if (pasteText.includes("\n") || pasteText.includes("\t")) {
-                          event.preventDefault();
-                          handleLeftPaste(rowIndex, colIndex, pasteText);
-                        }
-                      }}
+                      type="checkbox"
+                      checked={nurses.length > 0 && selectedRowIds?.length === nurses.length}
+                      onChange={() => onToggleAllRows?.()}
+                      aria-label="Select all rows"
                     />
-                  </td>
-                ))}
-                {dateKeys.map((dateKey) => {
-                  const cellKey = `${nurse.id}_${dateKey}`;
-                  const shiftValue = shifts[cellKey] || "";
-
+                  </th>
+                  {LEFT_COLUMNS.map((col) => (
+                    <th key={col.key} className={col.className}>
+                      {col.label}
+                    </th>
+                  ))}
+                </tr>
+                <tr>
+                  <th className="col-select">
+                    <span className="header-spacer" />
+                  </th>
+                  {LEFT_COLUMNS.map((col) => (
+                    <th key={`${col.key}-spacer`} className={col.className}>
+                      <span className="header-spacer" />
+                    </th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {nurses.map((nurse, rowIndex) => {
+                  const rowClass = selectedRowIndexSet.has(nurse.id)
+                    ? "row-selected"
+                    : undefined;
                   return (
-                    <td
-                      key={cellKey}
-                      className="date-col"
-                      onPaste={(event) => {
-                        const pasteText = event.clipboardData.getData("text");
-                        if (pasteText.includes("\n") || pasteText.includes("\t")) {
-                          event.preventDefault();
-                          handlePaste(nurse.id, dateKey, rowIndex, pasteText);
-                        }
-                      }}
-                    >
-                      <div className="cell-stack">
-                        <select
-                          value={shiftValue}
-                          onChange={(event) =>
-                            onShiftChange(nurse.id, dateKey, event.target.value)
-                          }
-                          onPaste={(event) => {
-                            const pasteText = event.clipboardData.getData("text");
-                            if (pasteText.includes("\n") || pasteText.includes("\t")) {
-                              event.preventDefault();
-                              handlePaste(nurse.id, dateKey, rowIndex, pasteText);
+                    <tr key={nurse.id} className={rowClass}>
+                      <td className="col-select">
+                        <input
+                          type="checkbox"
+                          checked={selectedRowIds?.includes(nurse.id) ?? false}
+                          onChange={() => onToggleRow?.(nurse.id)}
+                          aria-label={`Select row ${rowIndex + 1}`}
+                        />
+                      </td>
+                      {LEFT_COLUMNS.map((col, colIndex) => (
+                        <td key={`${nurse.id}-${col.key}`} className={col.className}>
+                          <input
+                            type="text"
+                            value={nurse[col.key] ?? ""}
+                            onChange={(event) =>
+                              onNurseChange?.(nurse.id, col.key, event.target.value)
                             }
-                          }}
-                        >
-                          <option value="">-</option>
-                          {shiftTypes.map((shift) => (
-                            <option key={shift} value={shift}>
-                              {shift}
-                            </option>
-                          ))}
-                        </select>
-                      </div>
-                    </td>
+                            onBlur={() => onNurseCommit?.(nurse)}
+                            onPaste={(event) => {
+                              const pasteText = event.clipboardData.getData("text");
+                              if (pasteText.includes("\n") || pasteText.includes("\t")) {
+                                event.preventDefault();
+                                handleLeftPaste(rowIndex, colIndex, pasteText);
+                              }
+                            }}
+                          />
+                        </td>
+                      ))}
+                    </tr>
                   );
                 })}
-                <td className="row-actions-cell">
-                  <button
-                    type="button"
-                    className="btn btn-outline row-delete-btn"
-                    onClick={() => onDeleteRow?.(nurse.id)}
-                  >
-                    Delete row
-                  </button>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+              </tbody>
+            </table>
+          </div>
+          <div className="scheduler-table-scroll">
+            <table className="scheduler-table scheduler-table-dates">
+              <thead>
+                <tr>
+                  {dates.map((date) => (
+                    <th key={`weekday-${date.toISOString()}`} className="date-col weekday-header">
+                      {formatWeekday(date)}
+                    </th>
+                  ))}
+                </tr>
+                <tr>
+                  {dates.map((date) => (
+                    <th key={`date-${date.toISOString()}`} className="date-col date-header">
+                      {formatDateLabel(date)}
+                    </th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {nurses.map((nurse, rowIndex) => {
+                  const rowClass = selectedRowIndexSet.has(nurse.id)
+                    ? "row-selected"
+                    : undefined;
+                  return (
+                    <tr key={`${nurse.id}-dates`} className={rowClass}>
+                      {dateKeys.map((dateKey) => {
+                        const cellKey = `${nurse.id}_${dateKey}`;
+                        const shiftValue = shifts[cellKey] || "";
+
+                        return (
+                          <td
+                            key={cellKey}
+                            className="date-col"
+                            onPaste={(event) => {
+                              const pasteText = event.clipboardData.getData("text");
+                              if (pasteText.includes("\n") || pasteText.includes("\t")) {
+                                event.preventDefault();
+                                handlePaste(nurse.id, dateKey, rowIndex, pasteText);
+                              }
+                            }}
+                          >
+                            <div className="cell-stack">
+                              <select
+                                value={shiftValue}
+                                onChange={(event) =>
+                                  onShiftChange(nurse.id, dateKey, event.target.value)
+                                }
+                                onPaste={(event) => {
+                                  const pasteText = event.clipboardData.getData("text");
+                                  if (pasteText.includes("\n") || pasteText.includes("\t")) {
+                                    event.preventDefault();
+                                    handlePaste(nurse.id, dateKey, rowIndex, pasteText);
+                                  }
+                                }}
+                              >
+                                <option value="">-</option>
+                                {shiftTypes.map((shift) => (
+                                  <option key={shift} value={shift}>
+                                    {shift}
+                                  </option>
+                                ))}
+                              </select>
+                            </div>
+                          </td>
+                        );
+                      })}
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        </div>
       </div>
     </div>
   );
