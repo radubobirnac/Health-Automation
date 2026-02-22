@@ -34,17 +34,17 @@ export default function Layout({ children }) {
           <div className="brand">
             <div className="logo">HR</div>
             <div>
-              <div className="brand-title">HealthRoster Automation</div>
+              <div className="brand-title">Health Roaster Automation</div>
               <div className="brand-sub">NHS Shift Booking</div>
             </div>
           </div>
-          <nav className="nav">
+          <nav className="nav" aria-label="Main">
             <Link to="/">Home</Link>
             <Link to="/about">About</Link>
             <Link to="/contact">Contact</Link>
             <Link to="/login">Client Portal</Link>
           </nav>
-          <div className="nav-actions">
+          <div className="nav-actions" aria-label="Actions">
             <Link className="btn btn-outline" to="/contact">
               Book a Free Demo
             </Link>

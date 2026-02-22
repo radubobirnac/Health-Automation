@@ -236,7 +236,7 @@ export default function SchedulerGrid({
             <table className="scheduler-table scheduler-table-fixed">
               <thead>
                 <tr>
-                  <th className="col-select">
+                  <th className="col-select header-cell">
                     <input
                       type="checkbox"
                       checked={nurses.length > 0 && selectedRowIds?.length === nurses.length}
@@ -245,18 +245,8 @@ export default function SchedulerGrid({
                     />
                   </th>
                   {LEFT_COLUMNS.map((col) => (
-                    <th key={col.key} className={col.className}>
+                    <th key={col.key} className={`${col.className} header-cell`}>
                       {col.label}
-                    </th>
-                  ))}
-                </tr>
-                <tr>
-                  <th className="col-select">
-                    <span className="header-spacer" />
-                  </th>
-                  {LEFT_COLUMNS.map((col) => (
-                    <th key={`${col.key}-spacer`} className={col.className}>
-                      <span className="header-spacer" />
                     </th>
                   ))}
                 </tr>
@@ -306,15 +296,11 @@ export default function SchedulerGrid({
               <thead>
                 <tr>
                   {dates.map((date) => (
-                    <th key={`weekday-${date.toISOString()}`} className="date-col weekday-header">
-                      {formatWeekday(date)}
-                    </th>
-                  ))}
-                </tr>
-                <tr>
-                  {dates.map((date) => (
-                    <th key={`date-${date.toISOString()}`} className="date-col date-header">
-                      {formatDateLabel(date)}
+                    <th key={`date-${date.toISOString()}`} className="date-col header-cell">
+                      <div className="date-header-stack">
+                        <span className="weekday-header">{formatWeekday(date)}</span>
+                        <span className="date-header">{formatDateLabel(date)}</span>
+                      </div>
                     </th>
                   ))}
                 </tr>
