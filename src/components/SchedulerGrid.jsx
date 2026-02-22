@@ -27,7 +27,6 @@ export default function SchedulerGrid({
   onBulkNurseChange,
   selectedRowIds,
   onToggleRow,
-  onToggleAllRows,
   onNurseCommit,
   onBulkNurseCommit,
   onEnsureRows
@@ -236,14 +235,7 @@ export default function SchedulerGrid({
             <table className="scheduler-table scheduler-table-fixed">
               <thead>
                 <tr>
-                  <th className="col-select header-cell">
-                    <input
-                      type="checkbox"
-                      checked={nurses.length > 0 && selectedRowIds?.length === nurses.length}
-                      onChange={() => onToggleAllRows?.()}
-                      aria-label="Select all rows"
-                    />
-                  </th>
+                  <th className="col-select header-cell header-placeholder" aria-hidden="true" />
                   {LEFT_COLUMNS.map((col) => (
                     <th key={col.key} className={`${col.className} header-cell`}>
                       {col.label}

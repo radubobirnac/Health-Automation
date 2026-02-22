@@ -672,6 +672,14 @@ body {
   height: 18px;
 }
 
+.header-placeholder {
+  background: transparent;
+  border: none;
+  box-shadow: none;
+  pointer-events: none;
+  padding: 0;
+}
+
 .col-select {
   width: 44px;
   min-width: 44px;

@@ -441,13 +441,33 @@ export default function Dashboard() {
     });
   };
 
-  const handleToggleAllRows = () => {
-    setSelectedRowIds((prev) => {
-      if (prev.length === nurses.length) {
-        return [];
-      }
-      return nurses.map((nurse) => nurse.id);
+  const handleDeleteSelectedRows = async () => {
+    const idsToDelete = selectedRowIds || [];
+    if (!idsToDelete.length || !activeSheetId) return;
+    markLocalUpdate();
+    const selectedIdsSet = new Set(idsToDelete);
+    setNurses((prev) => padRows(prev.filter((nurse) => !selectedIdsSet.has(nurse.id))));
+    setShifts((prev) => {
+      const next = {};
+      Object.entries(prev || {}).forEach(([key, value]) => {
+        const [nurseId] = key.split("_");
+        if (!selectedIdsSet.has(nurseId)) {
+          next[key] = value;
+        }
+      });
+      return next;
     });
+    setSelectedRowIds([]);
+    try {
+      await authedFetch("/nurses/delete", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ sheet_id: activeSheetId, nurse_ids: idsToDelete })
+      });
+      markServerSync(activeSheetId);
+    } catch (error) {
+      setStatus({ state: "error", message: "Failed to delete selected rows." });
+    }
   };
 
 
@@ -604,6 +624,16 @@ export default function Dashboard() {
                 >
                   Add row
                 </button>
+                {!isLogsSheet && (
+                  <button
+                    className="btn btn-danger"
+                    type="button"
+                    disabled={!selectedRowIds.length}
+                    onClick={handleDeleteSelectedRows}
+                  >
+                    Delete Selected Rows
+                  </button>
+                )}
               </div>
               {isLogsSheet ? (
                 <SheetGrid
@@ -627,7 +657,6 @@ export default function Dashboard() {
                   onEnsureRows={handleEnsureRows}
                   selectedRowIds={selectedRowIds}
                   onToggleRow={handleToggleRow}
-                  onToggleAllRows={handleToggleAllRows}
                 />
               )}
             </div>
