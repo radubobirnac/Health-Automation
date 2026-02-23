@@ -1,4 +1,5 @@
 import { useMemo } from "react";
+import { getShiftColor } from "../utils/shiftColors.js";
 
 const LEFT_COLUMNS = [
   { key: "locum_name", label: "Locum Name", className: "col-locum" },
@@ -307,11 +308,13 @@ export default function SchedulerGrid({
                       {dateKeys.map((dateKey) => {
                         const cellKey = `${nurse.id}_${dateKey}`;
                         const shiftValue = shifts[cellKey] || "";
+                        const shiftStyle = getShiftColor(shiftValue);
 
                         return (
                           <td
                             key={cellKey}
-                            className="date-col"
+                            className="date-col shift-cell"
+                            style={shiftStyle}
                             onPaste={(event) => {
                               const pasteText = event.clipboardData.getData("text");
                               if (pasteText.includes("\n") || pasteText.includes("\t")) {
@@ -322,7 +325,9 @@ export default function SchedulerGrid({
                           >
                             <div className="cell-stack">
                               <select
+                                className="shift-select"
                                 value={shiftValue}
+                                style={shiftStyle}
                                 onChange={(event) =>
                                   onShiftChange(nurse.id, dateKey, event.target.value)
                                 }

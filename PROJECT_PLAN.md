@@ -1,31 +1,5 @@
 # HealthRoster Automation End-to-End Project Plan
 
-## 0) Current Implementation Snapshot (Control Plane, As Built)
-
-This document includes the long-range worker roadmap, but the current codebase already contains a completed conversion/trust hardening wave on the public site.
-
-Implemented in current UI/runtime:
-
-- Homepage hero micro-form posts directly to `/contact` with `source: "hero"`.
-- Contact page posts to `/contact` with `source: "contact"`.
-- Contact intake endpoint accepts both `/contact` and `/api/contact` and validates source-specific payload shape.
-- Public `Security` route (`/security`) exists with FAQ-style credential trust content.
-- Header and footer expose `Security` navigation links.
-- Inline credential-security reassurance is present in Home `How It Works` Step 1.
-- Homepage includes a dedicated `How we protect your credentials` section with status badges:
-  - `Operational`
-  - `In progress`
-  - `Planned`
-- About page includes a lightweight security trust block linking to `/security`.
-- Public copy source-of-truth is centralized in:
-  - `src/content/socialProof.js`
-  - `src/content/securityTrust.js`
-
-Scope interpretation for new contributors/agents:
-
-- **Operational now:** marketing conversion + trust/security messaging flow.
-- **Planned next:** trust configuration CRUD, booking task queue, and separate Playwright worker.
-
 ## 1) Objective and Success Metrics
 
 Build an end-to-end staffing automation platform that progresses from the current scheduling workspace to reliable Allocate booking execution with auditable reporting.
@@ -44,7 +18,6 @@ Primary success metrics:
 
 - Stabilize and document current app as the control plane:
   - Auth and role model.
-  - Public conversion and trust messaging flow maintenance (`Home`, `Contact`, `About`, `Security`).
   - Sheet and schedule data management.
   - Admin account provisioning.
   - Trust configuration management (portal URLs, throttle profiles, selector versions).
@@ -62,7 +35,6 @@ Primary success metrics:
 - Autonomous captcha bypassing techniques.
 - Multi-region deployment outside UK-hosted infrastructure.
 - Full BI dashboarding beyond required operational logs and exceptions.
-- Public claims that imply blanket NHS Trust approval without trust-by-trust verification evidence.
 
 ## 3) Discovery-Derived Constraints (Allocate Checklist)
 
@@ -387,22 +359,6 @@ Acceptance criteria:
 - Sensitive values are scrubbed from docs and repository guidance.
 - Trust configuration schema is documented and reviewed by stakeholders.
 
-### M0.5: Public Conversion and Credential Trust Hardening (Implemented)
-
-Goals:
-
-- Reduce credential-anxiety bounce by answering trust concerns at the first trigger point.
-- Add discoverable public security documentation without overclaiming technical/compliance posture.
-
-Acceptance criteria (implemented):
-
-- `Home` Step 1 has an always-visible credential-security callout linked to `/security`.
-- Homepage has `How we protect your credentials` section with status-badged cards.
-- `Contact` has form-adjacent credential reassurance with local Trust policy caveat.
-- New `Security` page exists with FAQ-style sections and a primary `Book a Demo` CTA.
-- Header and footer include `Security` route links.
-- Shared copy/config for trust messaging is centralized under `src/content/securityTrust.js`.
-
 ### M1: Control Plane Stabilization
 
 Goals:
@@ -633,14 +589,6 @@ See Section 4.10 for the full structure.
   - `/nurses/*`
   - `/schedule/*`
   - `/contact`
-  - `/api/contact` (alias for contact intake)
-- Contact intake supports source-specific payload contracts:
-  - `source: "hero"` requires `workEmail` and `trustOrHospital`
-  - `source: "contact"` requires `fullName` and `workEmail`
-- Public trust copy is controlled by:
-  - `src/content/socialProof.js`
-  - `src/content/securityTrust.js`
-- Public trust route `/security` is part of the current control plane scope.
 - New routes for trust config, booking tasks, and worker status will be added in M1.
 - Google Sheets integration uses a service account with Sheets API v4.
 - Credential storage for Allocate portal logins uses Firestore with field-level encryption (or a secret manager if available on DigitalOcean). Credentials are never logged or included in task documents.
