@@ -16,7 +16,7 @@ export default function Signup() {
           <div className="auth-card">
             <h2>Need access?</h2>
             <p className="form-note">
-              Accounts are created by the HealthRoster Automation admin team. Please contact us
+              Accounts are created by the Health Roster Automation admin team. Please contact us
               to receive your credentials.
             </p>
             <div style={{ display: "flex", gap: "12px", marginTop: "16px" }}>

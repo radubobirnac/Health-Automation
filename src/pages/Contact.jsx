@@ -1,4 +1,11 @@
 import { useState } from "react";
+import {
+  contactProofReassurance,
+  contactProofTitle,
+  socialProof
+} from "../content/socialProof.js";
+import { globalCaveats } from "../content/securityTrust.js";
+import { Link } from "react-router-dom";
 
 const initialState = {
   fullName: "",
@@ -26,7 +33,10 @@ export default function Contact() {
         headers: {
           "Content-Type": "application/json"
         },
-        body: JSON.stringify(formState)
+        body: JSON.stringify({
+          ...formState,
+          source: "contact"
+        })
       });
 
       if (!response.ok) {
@@ -118,6 +128,22 @@ export default function Contact() {
           </form>
           <div className="contact-card">
             <h2>Contact Details</h2>
+            <div className="contact-security-reassurance">
+              <h3>Credential Security Guidance</h3>
+              <p>
+                Credential handling is designed for roster-booking automation with controlled access
+                boundaries and continuous hardening.
+              </p>
+              <p>{globalCaveats.nhsPolicyNote}</p>
+              <Link className="step-security-link" to="/security">
+                Read security details &rarr;
+              </Link>
+            </div>
+            <div className="proof-card" aria-label="Social proof">
+              <h3>{contactProofTitle}</h3>
+              <p>{socialProof.contactProofLine}</p>
+              <p>{contactProofReassurance}</p>
+            </div>
             <p>Email: bobirnacr@gmail.com</p>
             <p>Phone: +1 (503) 820-9110</p>
             <p>Hours: Monday to Friday, 9am-6pm</p>

@@ -52,6 +52,10 @@ const getEnv = (key) => {
   return value;
 };
 
+const toTrimmedString = (value) => {
+  return typeof value === "string" ? value.trim() : "";
+};
+
 const handleContact = async (req, res) => {
   if (req.method === "OPTIONS") {
     res.writeHead(204, {
@@ -77,10 +81,24 @@ const handleContact = async (req, res) => {
     return;
   }
 
-  const { fullName, workEmail, trustOrHospital, message } = payload || {};
+  const sourceValue = payload?.source === "hero" ? "hero" : "contact";
+  const fullName = toTrimmedString(payload?.fullName);
+  const workEmail = toTrimmedString(payload?.workEmail);
+  const trustOrHospital = toTrimmedString(payload?.trustOrHospital);
+  const message = toTrimmedString(payload?.message);
 
-  if (!fullName || !workEmail) {
+  if (!workEmail) {
+    sendJson(res, 400, { error: "Work email is required." });
+    return;
+  }
+
+  if (sourceValue === "contact" && !fullName) {
     sendJson(res, 400, { error: "Full name and work email are required." });
+    return;
+  }
+
+  if (sourceValue === "hero" && !trustOrHospital) {
+    sendJson(res, 400, { error: "NHS Trust name is required." });
     return;
   }
 
@@ -100,6 +118,7 @@ const handleContact = async (req, res) => {
     });
 
     const text = [
+      `Source: ${sourceValue}`,
       `Full Name: ${fullName}`,
       `Work Email: ${workEmail}`,
       `Trust or Hospital: ${trustOrHospital || "N/A"}`,
@@ -107,11 +126,12 @@ const handleContact = async (req, res) => {
       "Message:",
       message || "(no message provided)"
     ].join("\n");
+    const requestLabel = sourceValue === "hero" ? trustOrHospital : fullName;
 
     await transporter.sendMail({
       from,
       to: "radubobirnac@gmail.com, virinchiaddanki@gmail.com",
-      subject: `HealthRoster Demo Request - ${fullName}`,
+      subject: `HealthRoster Demo Request (${sourceValue}) - ${requestLabel || workEmail}`,
       replyTo: workEmail,
       text
     });

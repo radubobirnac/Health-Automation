@@ -1,6 +1,56 @@
+import { useState } from "react";
 import { Link } from "react-router-dom";
+import { socialProof, trustRowHospitalStat } from "../content/socialProof.js";
+import { globalCaveats, homepageSecurityBlocks, step1Callout } from "../content/securityTrust.js";
+
+const initialHeroState = {
+  workEmail: "",
+  trustOrHospital: ""
+};
 
 export default function Home() {
+  const [heroFormState, setHeroFormState] = useState(initialHeroState);
+  const [heroStatus, setHeroStatus] = useState({ state: "idle", message: "" });
+
+  const handleHeroChange = (event) => {
+    const { name, value } = event.target;
+    setHeroFormState((prev) => ({ ...prev, [name]: value }));
+  };
+
+  const handleHeroSubmit = async (event) => {
+    event.preventDefault();
+    setHeroStatus({ state: "sending", message: "Sending your request..." });
+
+    try {
+      const response = await fetch("/contact", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+          ...heroFormState,
+          source: "hero"
+        })
+      });
+
+      if (!response.ok) {
+        const errorPayload = await response.json().catch(() => ({}));
+        throw new Error(errorPayload?.error || "Failed to send request.");
+      }
+
+      setHeroStatus({
+        state: "success",
+        message: "Request sent. We will be in touch shortly."
+      });
+      setHeroFormState(initialHeroState);
+    } catch (error) {
+      setHeroStatus({
+        state: "error",
+        message: error?.message || "Something went wrong. Please try again."
+      });
+    }
+  };
+
   return (
     <>
       <section className="hero">
@@ -12,14 +62,18 @@ export default function Home() {
               Never miss a shift again. We automate your HealthRoster bookings based on
               your grade and preferred shift type.
             </p>
+            <p className="proof-line">{socialProof.heroProofLine}</p>
             <div className="hero-actions">
               <Link className="btn btn-primary" to="/contact">
-                Book a Free Demo
+                Book a Free Demo - Takes 2 Minutes
               </Link>
-              <a className="btn btn-outline" href="#how-it-works">
-                How It Works
-              </a>
             </div>
+            <a className="scroll-cue" href="#how-it-works">
+              <span className="scroll-cue-icon" aria-hidden="true">
+                v
+              </span>
+              <span>How it works</span>
+            </a>
             <div className="trust-row">
               <div className="trust-card">
                 <div className="trust-number">24/7</div>
@@ -30,24 +84,54 @@ export default function Home() {
                 <div className="trust-label">Encrypted credentials</div>
               </div>
               <div className="trust-card">
-                <div className="trust-number">Fast</div>
-                <div className="trust-label">Instant booking</div>
+                <div className="trust-number">{trustRowHospitalStat.value}</div>
+                <div className="trust-label">{trustRowHospitalStat.label}</div>
               </div>
             </div>
           </div>
-          <div className="hero-panel">
-            <div className="panel-card">
-              <h3>Your Preferences</h3>
-              <ul>
-                <li>HealthRoster Username</li>
-                <li>HealthRoster Password</li>
-                <li>Requested Grade</li>
-                <li>Preferred Shift Type</li>
-              </ul>
-              <div className="panel-note">
-                We configure automation to match your exact shift preferences.
-              </div>
-            </div>
+          <div className="hero-form-panel">
+            <form className="hero-form-card" onSubmit={handleHeroSubmit}>
+              <h3>Get Your Free Demo</h3>
+              <label>
+                Work Email
+                <input
+                  type="email"
+                  name="workEmail"
+                  placeholder="jane@nhs.uk"
+                  value={heroFormState.workEmail}
+                  onChange={handleHeroChange}
+                  required
+                />
+              </label>
+              <label>
+                NHS Trust Name
+                <input
+                  type="text"
+                  name="trustOrHospital"
+                  placeholder="e.g. Leeds Teaching Hospitals"
+                  value={heroFormState.trustOrHospital}
+                  onChange={handleHeroChange}
+                  required
+                />
+              </label>
+              <button
+                className="btn btn-primary hero-submit"
+                type="submit"
+                disabled={heroStatus.state === "sending"}
+              >
+                {heroStatus.state === "sending" ? "Sending..." : "Get My Free Demo ->"}
+              </button>
+              <p className="hero-form-note">No commitment. Set up in 48 hours.</p>
+              <p className="hero-form-note">We&apos;ll only use this to set up your demo. No spam, ever.</p>
+              {heroStatus.message && (
+                <p
+                  className={`hero-status ${heroStatus.state === "error" ? "is-error" : "is-success"}`}
+                  aria-live="polite"
+                >
+                  {heroStatus.message}
+                </p>
+              )}
+            </form>
           </div>
         </div>
       </section>
@@ -63,6 +147,16 @@ export default function Home() {
               <div className="step-index">1</div>
               <h3>Share your preferences</h3>
               <p>You provide login credentials, grade, and preferred shift type.</p>
+              <div className="step-security-callout">
+                <div className="step-security-title">
+                  <span aria-hidden="true">{step1Callout.icon}</span>
+                  <span>{step1Callout.title}</span>
+                </div>
+                <p>{step1Callout.body}</p>
+                <Link className="step-security-link" to={step1Callout.linkHref}>
+                  {step1Callout.linkLabel} &rarr;
+                </Link>
+              </div>
             </div>
             <div className="step-card">
               <div className="step-index">2</div>
@@ -124,6 +218,45 @@ export default function Home() {
               <p>Credentials are encrypted and used only for automated booking.</p>
             </div>
           </div>
+        </div>
+      </section>
+
+      <section className="section homepage-security-section">
+        <div className="container">
+          <div className="section-header">
+            <h2>How we protect your credentials</h2>
+            <p>
+              We use practical safeguards now, continue hardening security posture, and share roadmap
+              progress transparently.
+            </p>
+          </div>
+          <div className="homepage-security-grid">
+            {homepageSecurityBlocks.map((block) => (
+              <article key={block.title} className="homepage-security-card">
+                <div className="homepage-security-card-header">
+                  <h3>{block.title}</h3>
+                  <span className="status-badge" data-status={block.status}>
+                    {block.status}
+                  </span>
+                </div>
+                <p>{block.body}</p>
+              </article>
+            ))}
+          </div>
+          <p className="homepage-security-caveat">{globalCaveats.nhsPolicyNote}</p>
+          <Link className="step-security-link" to="/security">
+            Full security details &rarr;
+          </Link>
+        </div>
+      </section>
+
+      <section className="section proof-strip-section" aria-label="Service trust signals">
+        <div className="container proof-strip">
+          {socialProof.primaryStats.map((stat) => (
+            <div className="proof-item" key={stat.value}>
+              {stat.value}
+            </div>
+          ))}
         </div>
       </section>
 

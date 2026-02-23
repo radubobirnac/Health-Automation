@@ -34,7 +34,7 @@ export default function Layout({ children }) {
           <div className="brand">
             <div className="logo">HR</div>
             <div>
-              <div className="brand-title">Health Roaster Automation</div>
+              <div className="brand-title">Health Roster Automation</div>
               <div className="brand-sub">NHS Shift Booking</div>
             </div>
           </div>
@@ -42,6 +42,7 @@ export default function Layout({ children }) {
             <Link to="/">Home</Link>
             <Link to="/about">About</Link>
             <Link to="/contact">Contact</Link>
+            <Link to="/security">Security</Link>
             <Link to="/login">Client Portal</Link>
           </nav>
           <div className="nav-actions" aria-label="Actions">
@@ -90,7 +91,7 @@ export default function Layout({ children }) {
       <footer className="site-footer">
         <div className="container footer-grid">
           <div>
-            <div className="footer-title">HealthRoster Automation</div>
+            <div className="footer-title">Health Roster Automation</div>
             <p>
               Automated shift booking for NHS Trust nurses. We simplify and secure the
               HealthRoster booking process so you can focus on patient care.
@@ -107,10 +108,13 @@ export default function Layout({ children }) {
               We never share credentials with third parties. Credentials are encrypted
               in transit and stored securely for automation only.
             </p>
+            <p>
+              <Link to="/security">View security details</Link>
+            </p>
           </div>
         </div>
         <div className="container footer-bottom">
-          <span>(c) 2026 HealthRoster Automation. All rights reserved.</span>
+          <span>(c) 2026 Health Roster Automation. All rights reserved.</span>
         </div>
       </footer>
     </>

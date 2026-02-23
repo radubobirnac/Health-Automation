@@ -1,3 +1,6 @@
+import { Link } from "react-router-dom";
+import { globalCaveats } from "../content/securityTrust.js";
+
 export default function About() {
   return (
     <>
@@ -37,6 +40,20 @@ export default function About() {
               <li>Built specifically for NHS Trust workflows</li>
             </ul>
           </div>
+        </div>
+      </section>
+
+      <section className="section">
+        <div className="container about-security-block">
+          <h2>Credential Security Transparency</h2>
+          <p>
+            We provide practical, status-based security communication so you can evaluate controls
+            without overclaiming.
+          </p>
+          <p>{globalCaveats.nhsPolicyNote}</p>
+          <Link className="step-security-link" to="/security">
+            Review security details &rarr;
+          </Link>
         </div>
       </section>
 
