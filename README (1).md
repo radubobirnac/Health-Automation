@@ -14,7 +14,7 @@ The scheduling workspace is the control plane: clients populate nurse-to-shift a
 
 ## Current Status
 
-### Implemented Today (Control Plane)
+### Implemented Today (Control Plane) -V1 
 
 - React + Vite frontend with routing for marketing, auth, dashboard, and admin pages.
 - Node HTTP server (`server.js`) for production serving and API handling.
@@ -24,7 +24,7 @@ The scheduling workspace is the control plane: clients populate nurse-to-shift a
 - Multi-sheet schedule management (create, duplicate, rename, delete with logs protection).
 - Nurse row CRUD and shift cell updates over date ranges.
 
-### Planned / Not Yet Implemented
+### Planned / Not Yet Implemented - V2 (this will be implemented once the onboarding of the client is complete)
 
 - Trust configuration management (admin CRUD for portal URLs, credentials, rate limits, selector versions).
 - Booking task generation from schedule workspace assignments.
@@ -65,7 +65,9 @@ The system consists of two services and two data stores:
                              │
                       ┌──────▼───────┐
                       │Google Sheets │
-                      │  (reporting) │
+                      │  (reporting)
+                           or
+                           our Portal │
                       └──────────────┘
 ```
 
@@ -313,18 +315,22 @@ Note: Vite middleware currently mounts `/auth`, `/admin-api`, `/sheets`, `/sched
 
 ## Current State vs Target State Summary
 
-| Capability | Current | Target |
-| --- | --- | --- |
-| Schedule management | Operational | Operational (extended with task generation) |
-| Auth and admin provisioning | Operational | Operational (extended with trust config CRUD) |
-| Contact intake | Operational | Operational |
-| Trust configuration | Not implemented | Admin UI and API for per-trust settings |
-| Booking task queue | Not implemented | Firestore-backed task generation and lifecycle |
-| Browser automation | Not implemented | Playwright worker with per-trust context isolation |
-| Portal DOM parsing | Not implemented | Versioned selector sets, unfilled queue extraction |
-| Booking execution | Not implemented | Right-click booking workflow with pre-flight checks |
-| Captcha handling | Not implemented | Detection → alert → operator resolution workflow |
-| Google Sheets reporting | Not implemented | WAL-buffered batch sync with rate limit resilience |
-| Operational monitoring | Not implemented | Health checks, structured logs, alerting |
-
-See `PROJECT_PLAN.md` for the full implementation roadmap, milestone definitions, and architectural specifications.
+| Capability                          | Current                         | Target                                                  | Version |
+|-------------------------------------|---------------------------------|---------------------------------------------------------|---------|
+| Schedule management                 | Operational                     | Operational (extended with task generation)             | V1      |
+| Auth and admin provisioning         | Operational                     | Operational (extended with trust config CRUD)           | V1      |
+| Contact intake                      | Operational                     | Operational                                             | V1      |
+| Trust configuration                 | Not implemented                 | Admin UI and API for per-trust settings                 | V2      |
+| Booking task queue                  | Not implemented                 | Firestore-backed task generation and lifecycle          | V2      |
+| Browser automation                  | Not implemented                 | Playwright worker with per-trust context isolation      | V2      |
+| Portal DOM parsing                  | Not implemented                 | Versioned selector sets and unfilled queue extraction   | V2      |
+| Booking execution                   | Not implemented                 | Right-click booking workflow with pre-flight checks     | V2      |
+| Captcha handling                    | Not implemented                 | Detection → alert → operator resolution workflow        | V2      |
+| Google Sheets reporting             | Not implemented                 | WAL-buffered batch sync with rate limit resilience      | V2      |
+| Operational monitoring              | Not implemented                 | Health checks, structured logs, alerting                | V2      |
+| Automation performance optimization | Basic automation (V2)           | Improved latency, smarter scheduling, reduced race loss | V3      |
+| Reporting resilience                | Basic WAL sync (V2)             | Advanced reconciliation and audit tooling               | V3      |
+| Captcha workflow                    | Basic detection (V2)            | Enhanced operator tooling and recovery automation       | V3      |
+| Scalability                         | Single worker                   | Multi-worker horizontal scaling and load balancing      | V3      |
+| Reliability                         | Standard retry and error handling | Advanced failure classification and auto-recovery     | V3      |
+| Observability                       | Basic logs                      | Metrics dashboard, alert thresholds, health insights    | V3      |
