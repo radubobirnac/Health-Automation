@@ -329,8 +329,4 @@ Note: Vite middleware currently mounts `/auth`, `/admin-api`, `/sheets`, `/sched
 | Google Sheets reporting             | Not implemented                 | WAL-buffered batch sync with rate limit resilience      | V2      |
 | Operational monitoring              | Not implemented                 | Health checks, structured logs, alerting                | V2      |
 | Automation performance optimization | Basic automation (V2)           | Improved latency, smarter scheduling, reduced race loss | V3      |
-| Reporting resilience                | Basic WAL sync (V2)             | Advanced reconciliation and audit tooling               | V3      |
-| Captcha workflow                    | Basic detection (V2)            | Enhanced operator tooling and recovery automation       | V3      |
-| Scalability                         | Single worker                   | Multi-worker horizontal scaling and load balancing      | V3      |
-| Reliability                         | Standard retry and error handling | Advanced failure classification and auto-recovery     | V3      |
-| Observability                       | Basic logs                      | Metrics dashboard, alert thresholds, health insights    | V3      |
+Analytics and dashboards              | Basic analytics (V1)            | Advanced reporting and anomaly detection                | V3      |
