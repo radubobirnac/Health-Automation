@@ -1,9 +1,3 @@
-export const statusVocabulary = {
-  operational: "Operational",
-  inProgress: "In progress",
-  planned: "Planned"
-};
-
 export const step1Callout = {
   icon: "🔒",
   title: "Credential handling is security-first.",
@@ -16,21 +10,16 @@ export const step1Callout = {
 export const homepageSecurityBlocks = [
   {
     title: "Credential handling controls",
-    body:
-      "Credentials are handled through restricted automation workflows and are not intended for broad human access.",
-    status: statusVocabulary.operational
+    body: "Credentials are handled through restricted automation workflows and are not intended for broad human access."
   },
   {
     title: "Encryption and transport posture",
     body:
-      "Security controls are continuously hardened. Public technical standard disclosure is in progress and tracked in our security documentation.",
-    status: statusVocabulary.inProgress
+      "Security controls are continuously hardened. Public technical standard disclosure is tracked in our security documentation."
   },
   {
     title: "Deletion and lifecycle clarity",
-    body:
-      "Expanded self-service retention and deletion transparency is planned as part of our trust roadmap.",
-    status: statusVocabulary.planned
+    body: "Self-service retention and deletion transparency is part of our trust roadmap."
   }
 ];
 
@@ -38,51 +27,38 @@ export const securityFaq = [
   {
     id: "credential-handling",
     question: "How are my HealthRoster credentials handled?",
-    answer:
-      "Your credentials are used exclusively to carry out shift-booking automation on your behalf. Access is restricted through controlled internal workflows, and credentials are never used for any purpose beyond what you've authorised.",
-    status: statusVocabulary.operational
+    answer: "Your credentials are used exclusively to carry out shift-booking automation on your behalf. Access is restricted through controlled internal workflows, and credentials are never used for any purpose beyond what you've authorised."
   },
   {
     id: "encryption-transport",
     question: "What protections are used for storage and transmission?",
     answer:
-      "We apply layered security controls across both storage and transmission. We're currently working to formalise our technical disclosures so these controls are clearly documented in a public-facing format. Standard-level attestation is in progress.",
-    status: statusVocabulary.inProgress
+      "We apply layered security controls across both storage and transmission. We're currently working to formalise our technical disclosures so these controls are clearly documented in a public-facing format. Standard-level attestation is underway."
   },
   {
     id: "patient-data-boundary",
     question: "Do you access patient records or clinical notes?",
-    answer:
-      "No. Our service is scoped entirely to roster management and booking workflow automation. We have no access to and do not interact with clinical notes or patient record systems.",
-    status: statusVocabulary.operational
+    answer: "No. Our service is scoped entirely to roster management and booking workflow automation. We have no access to and do not interact with clinical notes or patient record systems."
   },
   {
     id: "gdpr-rights",
     question: "What is your GDPR and data-rights posture?",
-    answer:
-      "We take our obligations under UK GDPR seriously and are actively improving how we communicate them. This includes developing clearer user-facing guidance on how your data is processed and how to exercise your rights.",
-    status: statusVocabulary.inProgress
+    answer: "We take our obligations under UK GDPR seriously and are actively improving how we communicate them. This includes developing clearer user-facing guidance on how your data is processed and how to exercise your rights."
   },
   {
     id: "retention-deletion",
     question: "What happens to credentials when service stops?",
-    answer:
-      "We're expanding our credential lifecycle and deletion policy to give users clear timelines and expectations for what happens to their data when they leave the service. Updated guidance will be published shortly.",
-    status: statusVocabulary.planned
+    answer: "We're expanding our credential lifecycle and deletion policy to give users clear timelines and expectations for what happens to their data when they leave the service. Updated guidance will be published shortly."
   },
   {
     id: "incident-response",
     question: "What happens if there is a security incident?",
-    answer:
-      "We have incident response procedures in place. We have a formal, customer-facing notification policy so you know exactly what to expect and when in the event of an incident.",
-    status: statusVocabulary.inProgress
+    answer: "We have incident response procedures in place. We have a formal, customer-facing notification policy so you know exactly what to expect and when in the event of an incident."
   },
   {
     id: "nhs-policy",
     question: "Is this automatically approved by every NHS Trust policy?",
-    answer:
-      "No. Acceptable-use policies vary between Trusts, and no blanket approval should be assumed. Before sharing your credentials with any automation service, including ours, please confirm that doing so is permitted under your local Trust's policy.",
-    status: statusVocabulary.operational
+    answer: "No. Acceptable-use policies vary between Trusts, and no blanket approval should be assumed. Before sharing your credentials with any automation service, including ours, please confirm that doing so is permitted under your local Trust's policy."
   }
 ];
 

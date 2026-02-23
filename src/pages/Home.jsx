@@ -233,12 +233,7 @@ export default function Home() {
           <div className="homepage-security-grid">
             {homepageSecurityBlocks.map((block) => (
               <article key={block.title} className="homepage-security-card">
-                <div className="homepage-security-card-header">
-                  <h3>{block.title}</h3>
-                  <span className="status-badge" data-status={block.status}>
-                    {block.status}
-                  </span>
-                </div>
+                <h3>{block.title}</h3>
                 <p>{block.body}</p>
               </article>
             ))}

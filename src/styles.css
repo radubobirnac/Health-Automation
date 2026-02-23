@@ -32,24 +32,6 @@
   --grid-line: #334155;
 }
 
-:root[data-theme="dark"] .status-badge[data-status="Operational"] {
-  background: rgba(45, 212, 191, 0.22);
-  border-color: rgba(45, 212, 191, 0.35);
-  color: #8ef0df;
-}
-
-:root[data-theme="dark"] .status-badge[data-status="In progress"] {
-  background: rgba(59, 130, 246, 0.2);
-  border-color: rgba(59, 130, 246, 0.34);
-  color: #bfdbfe;
-}
-
-:root[data-theme="dark"] .status-badge[data-status="Planned"] {
-  background: rgba(148, 163, 184, 0.24);
-  border-color: rgba(148, 163, 184, 0.4);
-  color: #e2e8f0;
-}
-
 * {
   box-sizing: border-box;
   margin: 0;
@@ -489,13 +471,6 @@ body {
   gap: 10px;
 }
 
-.homepage-security-card-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
-  gap: 10px;
-}
-
 .homepage-security-card h3 {
   font-size: 1.02rem;
 }
@@ -503,36 +478,6 @@ body {
 .homepage-security-caveat {
   color: var(--gray-600);
   margin-bottom: 10px;
-}
-
-.status-badge {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: 999px;
-  padding: 4px 10px;
-  font-size: 0.75rem;
-  font-weight: 700;
-  border: 1px solid transparent;
-  white-space: nowrap;
-}
-
-.status-badge[data-status="Operational"] {
-  background: rgba(45, 212, 191, 0.2);
-  border-color: rgba(45, 212, 191, 0.35);
-  color: #0b6e5d;
-}
-
-.status-badge[data-status="In progress"] {
-  background: rgba(31, 111, 178, 0.15);
-  border-color: rgba(31, 111, 178, 0.28);
-  color: var(--blue-700);
-}
-
-.status-badge[data-status="Planned"] {
-  background: rgba(148, 163, 184, 0.18);
-  border-color: rgba(148, 163, 184, 0.36);
-  color: var(--gray-600);
 }
 
 .cta-section {
