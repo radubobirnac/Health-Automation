@@ -320,6 +320,7 @@ Note: Vite middleware currently mounts `/auth`, `/admin-api`, `/sheets`, `/sched
 | Schedule management                 | Operational                     | Operational (extended with task generation)             | V1      |
 | Auth and admin provisioning         | Operational                     | Operational (extended with trust config CRUD)           | V1      |
 | Contact intake                      | Operational                     | Operational                                             | V1      |
+Analytics and dashboards              | Basic analytics             | Advanced reporting and anomaly detection                | V2      |
 | Trust configuration                 | Not implemented                 | Admin UI and API for per-trust settings                 | V2      |
 | Booking task queue                  | Not implemented                 | Firestore-backed task generation and lifecycle          | V2      |
 | Browser automation                  | Not implemented                 | Playwright worker with per-trust context isolation      | V2      |
@@ -329,4 +330,3 @@ Note: Vite middleware currently mounts `/auth`, `/admin-api`, `/sheets`, `/sched
 | Google Sheets reporting             | Not implemented                 | WAL-buffered batch sync with rate limit resilience      | V2      |
 | Operational monitoring              | Not implemented                 | Health checks, structured logs, alerting                | V2      |
 | Automation performance optimization | Basic automation (V2)           | Improved latency, smarter scheduling, reduced race loss | V3      |
-Analytics and dashboards              | Basic analytics (V1)            | Advanced reporting and anomaly detection                | V3      |
