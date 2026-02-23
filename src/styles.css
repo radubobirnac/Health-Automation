@@ -808,15 +808,32 @@ body {
   background: var(--white);
 }
 
-.cell-stack select {
+.shift-cell {
+  background: var(--shift-cell-bg, var(--white));
+  transition: background-color 0.15s ease;
+}
+
+.shift-cell:hover {
+  background: var(--shift-cell-hover, var(--shift-cell-bg, var(--white)));
+}
+
+.shift-select {
   width: 100%;
   padding: 2px 4px;
   border-radius: 8px;
-  border: 1px solid var(--gray-300);
+  border: 1px solid var(--shift-border, var(--gray-300));
   font-family: inherit;
-  background: var(--white);
-  color: var(--text-primary);
+  background: var(--shift-bg, var(--white));
+  color: var(--shift-text, var(--text-primary));
   height: 28px;
+  transition: background-color 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.shift-select:hover,
+.shift-select:focus {
+  background: var(--shift-hover, var(--shift-bg, var(--white)));
+  border-color: var(--shift-border-strong, var(--shift-border, var(--gray-300)));
+  box-shadow: 0 0 0 2px rgba(15, 23, 42, 0.06);
 }
 
 .row-selected td {
