@@ -147,16 +147,21 @@ export default function Home() {
               <div className="step-index">1</div>
               <h3>Share your preferences</h3>
               <p>You provide login credentials, grade, and preferred shift type.</p>
-              <div className="step-security-callout">
-                <div className="step-security-title">
-                  <span aria-hidden="true">{step1Callout.icon}</span>
-                  <span>{step1Callout.title}</span>
-                </div>
+              <details className="step-security-callout">
+                <summary className="step-security-summary">
+                  <span className="step-security-title">
+                    <span aria-hidden="true">{step1Callout.icon}</span>
+                    <span>{step1Callout.title}</span>
+                  </span>
+                  <span className="step-security-chevron" aria-hidden="true">
+                    ▾
+                  </span>
+                </summary>
                 <p>{step1Callout.body}</p>
                 <Link className="step-security-link" to={step1Callout.linkHref}>
                   {step1Callout.linkLabel} &rarr;
                 </Link>
-              </div>
+              </details>
             </div>
             <div className="step-card">
               <div className="step-index">2</div>

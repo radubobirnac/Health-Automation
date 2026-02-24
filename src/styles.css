@@ -171,19 +171,19 @@ body {
 }
 
 .hero {
-  padding: 80px 0 60px;
+  padding: 12px 0 20px;
 }
 
 .hero-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 40px;
-  align-items: center;
+  gap: 32px;
+  align-items: start;
 }
 
 .hero-copy h1 {
   font-size: clamp(2.5rem, 4vw, 3.5rem);
-  margin: 12px 0 18px;
+  margin: 6px 0 14px;
 }
 
 .lead {
@@ -214,7 +214,7 @@ body {
 .hero-actions {
   display: flex;
   gap: 16px;
-  margin: 24px 0 10px;
+  margin: 18px 0 8px;
   flex-wrap: wrap;
 }
 
@@ -226,7 +226,7 @@ body {
   text-decoration: none;
   font-weight: 600;
   font-size: 0.9rem;
-  margin-bottom: 24px;
+  margin-bottom: 14px;
 }
 
 .scroll-cue-icon {
@@ -250,9 +250,9 @@ body {
 }
 
 .trust-row {
-  display: flex;
-  gap: 16px;
-  flex-wrap: wrap;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
 }
 
 .trust-card {
@@ -260,7 +260,7 @@ body {
   border-radius: 16px;
   background: var(--white);
   border: 1px solid var(--gray-300);
-  min-width: 140px;
+  min-width: 0;
 }
 
 .trust-number {
@@ -331,6 +331,10 @@ body {
   padding: 70px 0;
 }
 
+#how-it-works.section {
+  padding-top: 20px;
+}
+
 .section-header {
   text-align: center;
   margin-bottom: 40px;
@@ -347,6 +351,10 @@ body {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
   gap: 24px;
+}
+
+.steps-grid {
+  align-items: start;
 }
 
 .step-card,
@@ -373,10 +381,22 @@ body {
   margin-top: 12px;
   border: 1px solid rgba(31, 111, 178, 0.22);
   border-radius: 14px;
-  padding: 12px;
+  padding: 0;
   background: var(--gray-100);
-  display: grid;
+}
+
+.step-security-summary {
+  list-style: none;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
   gap: 8px;
+  padding: 12px;
+  cursor: pointer;
+}
+
+.step-security-summary::-webkit-details-marker {
+  display: none;
 }
 
 .step-security-title {
@@ -386,8 +406,18 @@ body {
   font-weight: 700;
 }
 
+.step-security-chevron {
+  color: var(--blue-700);
+  transition: transform 0.18s ease;
+}
+
+.step-security-callout[open] .step-security-chevron {
+  transform: rotate(180deg);
+}
+
 .step-security-callout p {
   margin: 0;
+  padding: 0 12px 8px;
   color: var(--gray-600);
 }
 
@@ -398,6 +428,7 @@ body {
   color: var(--blue-700);
   text-decoration: none;
   font-weight: 700;
+  padding: 0 12px 12px;
 }
 
 .step-security-link:focus-visible {
@@ -1474,6 +1505,10 @@ body {
   }
 
   .proof-strip {
+    grid-template-columns: 1fr;
+  }
+
+  .trust-row {
     grid-template-columns: 1fr;
   }
 
