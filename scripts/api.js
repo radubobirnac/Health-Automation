@@ -103,6 +103,22 @@ const getHeaderValue = (headers, name) => {
   return match ? headers[match] : "";
 };
 
+const getIngestSecret = () =>
+  normalizeName(process.env.API_INGEST_SECRET || process.env.API_SECRET);
+
+const requireIngestSecret = (headers) => {
+  const expected = getIngestSecret();
+  if (!expected) {
+    return { error: response(500, { error: "Ingest secret not configured." }) };
+  }
+  const provided =
+    getHeaderValue(headers, "API_SECRET") || getHeaderValue(headers, "X-API-SECRET");
+  if (!provided || normalizeName(provided) !== expected) {
+    return { error: response(401, { error: "Invalid API secret." }) };
+  }
+  return { ok: true };
+};
+
 const getBearerToken = (headers) => {
   const authHeader = getHeaderValue(headers, "authorization");
   if (!authHeader) return "";
@@ -291,7 +307,7 @@ export const handleApiRequest = async ({ method, path, query = {}, body, headers
       {},
       {
         "Access-Control-Allow-Origin": "*",
-        "Access-Control-Allow-Headers": "Content-Type, Authorization",
+        "Access-Control-Allow-Headers": "Content-Type, Authorization, API_SECRET, X-API-SECRET",
         "Access-Control-Allow-Methods": "GET,POST,OPTIONS"
       }
     );
@@ -383,32 +399,16 @@ export const handleApiRequest = async ({ method, path, query = {}, body, headers
     return response(200, { ok: true, username });
   }
 
-  const authResult = await requireAuth(headers);
-  if (authResult.error) {
-    return authResult.error;
-  }
-
-  if (upperMethod === "GET" && path === "/auth/me") {
-    return response(200, {
-      user_id: authResult.user_id,
-      username: authResult.username,
-      role: authResult.role
-    });
-  }
-
-  if (upperMethod === "GET" && path === "/admin-api/status") {
-    return response(200, { is_admin: isAdminUser(authResult) });
-  }
-
   if (upperMethod === "POST" && path === "/data/ingest") {
-    if (!isClientOrAdmin(authResult)) {
+    const ingestAuth = requireIngestSecret(headers);
+    if (ingestAuth.error) {
       await logAudit({
         action: "data_ingest",
-        status: "forbidden",
-        user_id: authResult.user_id,
-        role: authResult.role
+        status: "unauthorized",
+        user_id: "ingest-bot",
+        role: "ingest"
       });
-      return response(403, { error: "Client or admin access required." });
+      return ingestAuth.error;
     }
 
     const rows = Array.isArray(body?.rows)
@@ -451,16 +451,17 @@ export const handleApiRequest = async ({ method, path, query = {}, body, headers
       return response(400, { error: "Validation failed.", details: errors });
     }
 
-    const userDb = await loadUserDb(authResult.user_id);
+    const ingestUserId = normalizeName(process.env.INGEST_USER_ID) || "ingest-bot";
+    const userDb = await loadUserDb(ingestUserId);
     userDb.dataRows = userDb.dataRows || [];
     userDb.dataRows.push(...normalizedRows);
-    await saveUserDb(authResult.user_id, userDb);
+    await saveUserDb(ingestUserId, userDb);
 
     await logAudit({
       action: "data_ingest",
       status: "success",
-      user_id: authResult.user_id,
-      role: authResult.role,
+      user_id: ingestUserId,
+      role: "ingest",
       row_count: normalizedRows.length
     });
 
@@ -469,6 +470,29 @@ export const handleApiRequest = async ({ method, path, query = {}, body, headers
       inserted: normalizedRows.length,
       rows: normalizedRows
     });
+  }
+
+  const authResult = await requireAuth(headers);
+  if (authResult.error) {
+    return authResult.error;
+  }
+
+  if (upperMethod === "GET" && path === "/auth/me") {
+    return response(200, {
+      user_id: authResult.user_id,
+      username: authResult.username,
+      role: authResult.role
+    });
+  }
+
+  if (upperMethod === "GET" && path === "/admin-api/status") {
+    return response(200, { is_admin: isAdminUser(authResult) });
+  }
+
+  if (upperMethod === "GET" && path === "/data/rows") {
+    const ingestUserId = normalizeName(process.env.INGEST_USER_ID) || "ingest-bot";
+    const userDb = await loadUserDb(ingestUserId);
+    return response(200, { rows: userDb.dataRows || [] });
   }
 
   if (upperMethod === "POST" && path === "/admin-api/create-user") {

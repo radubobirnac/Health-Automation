@@ -537,6 +537,13 @@ export default function Dashboard() {
           </div>
           <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
             {status.message && <div className="status-pill">{status.message}</div>}
+            <button
+              className="btn btn-outline"
+              type="button"
+              onClick={() => navigate("/trusts-data")}
+            >
+              Trusts Data
+            </button>
             {isAdmin && (
               <button className="btn btn-outline" type="button" onClick={() => navigate("/admin")}>
                 Admin

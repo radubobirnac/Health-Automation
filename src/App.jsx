@@ -10,6 +10,7 @@ import Dashboard from "./pages/Dashboard.jsx";
 import AdminCreateUser from "./pages/AdminCreateUser.jsx";
 import AdminLogin from "./pages/AdminLogin.jsx";
 import AdminGuard from "./components/AdminGuard.jsx";
+import TrustsData from "./pages/TrustsData.jsx";
 
 export default function App() {
   return (
@@ -23,6 +24,7 @@ export default function App() {
         <Route path="/admin-login" element={<AdminLogin />} />
         <Route path="/signup" element={<Signup />} />
         <Route path="/app" element={<Dashboard />} />
+        <Route path="/trusts-data" element={<TrustsData />} />
         <Route
           path="/admin"
           element={
