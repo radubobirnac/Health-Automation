@@ -21,7 +21,8 @@ const createUserSeed = (clientName = "") => {
     },
     shiftsBySheet: {
       "sheet-main": clone(DEFAULT_SHIFTS)
-    }
+    },
+    dataRows: []
   };
   if (!seed.sheets.some((sheet) => sheet.sheet_id === "logs")) {
     seed.sheets.push(createLogsSheet());
@@ -41,6 +42,7 @@ const createUserSeed = (clientName = "") => {
   }
   seed.nursesBySheet.logs = seed.nursesBySheet.logs || [];
   seed.shiftsBySheet.logs = seed.shiftsBySheet.logs || [];
+  seed.dataRows = seed.dataRows || [];
   return seed;
 };
 
@@ -69,7 +71,9 @@ const anyAdminExists = async () => {
 const loadUserDb = async (userId) => {
   const doc = await getUserDoc(userId).get();
   if (doc.exists) {
-    return doc.data();
+    const data = doc.data();
+    data.dataRows = data.dataRows || [];
+    return data;
   }
   const seed = createUserSeed();
   await getUserDoc(userId).set(seed);
@@ -125,6 +129,7 @@ const verifyToken = (token) => {
 };
 
 const isAdminUser = (authUser) => authUser?.role === "admin";
+const isClientOrAdmin = (authUser) => authUser?.role === "admin" || authUser?.role === "client";
 
 const requireAuth = (headers) => {
   const token = getBearerToken(headers);
@@ -137,6 +142,121 @@ const requireAuth = (headers) => {
   } catch (error) {
     return { error: response(401, { error: "Invalid Authorization token." }) };
   }
+};
+
+const logAudit = async (entry) => {
+  try {
+    await firestore.collection("audit_logs").add({
+      ...entry,
+      created_at: new Date().toISOString()
+    });
+  } catch (error) {
+    console.error("Audit log write failed:", error?.message || error);
+  }
+};
+
+const REQUIRED_INGEST_FIELDS = [
+  "request_id",
+  "unit",
+  "request_grade",
+  "start",
+  "end",
+  "date",
+  "release",
+  "disappeared",
+  "sector",
+  "client",
+  "trust",
+  "portal"
+];
+
+const isIsoDate = (value) => /^\d{4}-\d{2}-\d{2}$/.test(value);
+
+const parseBoolean = (value) => {
+  if (typeof value === "boolean") return value;
+  if (typeof value === "string") {
+    if (value.toLowerCase() === "true") return true;
+    if (value.toLowerCase() === "false") return false;
+  }
+  return null;
+};
+
+const parseNumber = (value) => {
+  if (typeof value === "number" && Number.isFinite(value)) return value;
+  if (typeof value === "string" && value.trim() !== "") {
+    const parsed = Number(value);
+    if (Number.isFinite(parsed)) return parsed;
+  }
+  return null;
+};
+
+const validateIngestRow = (row) => {
+  const errors = [];
+  const normalized = {};
+
+  if (!row || typeof row !== "object") {
+    return { errors: ["Row must be an object."] };
+  }
+
+  REQUIRED_INGEST_FIELDS.forEach((field) => {
+    if (row[field] === undefined || row[field] === null || row[field] === "") {
+      errors.push(`${field} is required.`);
+    }
+  });
+
+  const requestId = parseNumber(row.request_id);
+  if (requestId === null) {
+    errors.push("request_id must be a number.");
+  }
+
+  const requestGrade = parseNumber(row.request_grade);
+  if (requestGrade === null) {
+    errors.push("request_grade must be a number.");
+  }
+
+  const release = parseBoolean(row.release);
+  if (release === null) {
+    errors.push("release must be a boolean.");
+  }
+
+  const disappeared = parseBoolean(row.disappeared);
+  if (disappeared === null) {
+    errors.push("disappeared must be a boolean.");
+  }
+
+  const dateValue = normalizeName(row.date);
+  if (dateValue && !isIsoDate(dateValue)) {
+    errors.push("date must be in YYYY-MM-DD format.");
+  }
+
+  const startValue = normalizeName(row.start);
+  const endValue = normalizeName(row.end);
+  if (!startValue) {
+    errors.push("start must be a non-empty string.");
+  }
+  if (!endValue) {
+    errors.push("end must be a non-empty string.");
+  }
+
+  if (errors.length > 0) {
+    return { errors };
+  }
+
+  normalized.request_id = requestId;
+  normalized.unit = String(row.unit).trim();
+  normalized.request_grade = requestGrade;
+  normalized.start = startValue;
+  normalized.end = endValue;
+  normalized.date = dateValue;
+  normalized.release = release;
+  normalized.disappeared = disappeared;
+  normalized.sector = String(row.sector).trim();
+  normalized.client = String(row.client).trim();
+  normalized.trust = String(row.trust).trim();
+  normalized.portal = String(row.portal).trim();
+  normalized.received_at = new Date().toISOString();
+
+  return { errors: [], normalized };
 };
 
 export const stripBase = (path, base) => {
@@ -278,6 +398,77 @@ export const handleApiRequest = async ({ method, path, query = {}, body, headers
 
   if (upperMethod === "GET" && path === "/admin-api/status") {
     return response(200, { is_admin: isAdminUser(authResult) });
+  }
+
+  if (upperMethod === "POST" && path === "/data/ingest") {
+    if (!isClientOrAdmin(authResult)) {
+      await logAudit({
+        action: "data_ingest",
+        status: "forbidden",
+        user_id: authResult.user_id,
+        role: authResult.role
+      });
+      return response(403, { error: "Client or admin access required." });
+    }
+
+    const rows = Array.isArray(body?.rows)
+      ? body.rows
+      : body?.row
+        ? [body.row]
+        : Array.isArray(body)
+          ? body
+          : [];
+
+    if (!Array.isArray(rows) || rows.length === 0) {
+      await logAudit({
+        action: "data_ingest",
+        status: "invalid_payload",
+        user_id: authResult.user_id,
+        role: authResult.role
+      });
+      return response(400, { error: "Payload must include rows." });
+    }
+
+    const errors = [];
+    const normalizedRows = [];
+    rows.forEach((row, index) => {
+      const { errors: rowErrors, normalized } = validateIngestRow(row);
+      if (rowErrors.length > 0) {
+        errors.push({ index, errors: rowErrors });
+      } else if (normalized) {
+        normalizedRows.push(normalized);
+      }
+    });
+
+    if (errors.length > 0) {
+      await logAudit({
+        action: "data_ingest",
+        status: "validation_error",
+        user_id: authResult.user_id,
+        role: authResult.role,
+        error_count: errors.length
+      });
+      return response(400, { error: "Validation failed.", details: errors });
+    }
+
+    const userDb = await loadUserDb(authResult.user_id);
+    userDb.dataRows = userDb.dataRows || [];
+    userDb.dataRows.push(...normalizedRows);
+    await saveUserDb(authResult.user_id, userDb);
+
+    await logAudit({
+      action: "data_ingest",
+      status: "success",
+      user_id: authResult.user_id,
+      role: authResult.role,
+      row_count: normalizedRows.length
+    });
+
+    return response(201, {
+      ok: true,
+      inserted: normalizedRows.length,
+      rows: normalizedRows
+    });
   }
 
   if (upperMethod === "POST" && path === "/admin-api/create-user") {
@@ -503,6 +694,7 @@ export const createViteMiddleware = () => {
         path.startsWith("/sheets") ||
         path.startsWith("/schedule") ||
         path.startsWith("/nurses") ||
+        path.startsWith("/data") ||
         path.startsWith("/admin-api") ||
         path.startsWith("/auth")
       )

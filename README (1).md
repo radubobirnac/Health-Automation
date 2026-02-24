@@ -93,6 +93,7 @@ The system consists of two services and two data stores:
 - Collections:
   - `auth_users`: credential docs and roles.
   - `users`: per-user sheet/nurse/shift state.
+  - `audit_logs`: audit log events (auth + ingest actions).
   - `trusts`: trust configuration documents (planned).
   - `booking_tasks`: worker task queue (planned).
   - `selector_sets`: versioned DOM selector configurations (planned).
@@ -162,7 +163,34 @@ See `PROJECT_PLAN.md` Section 4 for full architectural detail.
 | POST | `/schedule/update` | Yes | Upsert/delete single shift cell |
 | POST | `/nurses/upsert` | Yes | Upsert one or many nurse rows |
 | POST | `/nurses/delete` | Yes | Delete selected nurse rows and linked shifts |
+| POST | `/data/ingest` | Client/Admin | Ingest structured row data with validation |
 | POST | `/contact` | No | Send contact/demo request email |
+
+### Data Ingest Payload (`/data/ingest`)
+
+- Auth header: `Authorization: Bearer <token>`
+- Roles allowed: `client`, `admin`
+- Body shape: `{ "rows": [ { ...row } ] }` or `{ "row": { ...row } }`
+
+**Row schema (required fields):**
+- `request_id` (number)
+- `unit` (string)
+- `request_grade` (string)
+- `start` (string) 
+- `end` (string)
+- `date` (string, `YYYY-MM-DD`)
+- `release` (boolean)
+- `disappeared` (boolean)
+- `sector` (string)
+- `client` (string)
+- `trust` (string)
+- `portal` (string)
+
+**Response:**
+- `201` on success with `{ ok: true, inserted, rows }`
+- `400` on validation errors with `{ error, details }`
+- `401` for missing/invalid token
+- `403` for non-client/non-admin roles
 
 ### Planned Endpoints (M1)
 
@@ -254,7 +282,7 @@ npm run build
 npm start
 ```
 
-Note: Vite middleware currently mounts `/auth`, `/admin-api`, `/sheets`, `/schedule`, and `/nurses`. Contact testing is most reliable through `npm start`.
+Note: Vite middleware currently mounts `/auth`, `/admin-api`, `/sheets`, `/schedule`, `/nurses`, and `/data`. Contact testing is most reliable through `npm start`.
 
 ## Deployment Notes
 
