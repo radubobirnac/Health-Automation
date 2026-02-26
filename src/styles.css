@@ -1739,3 +1739,323 @@ body {
   font-size: 0.82rem;
   opacity: 0.55;
 }
+
+/* ── Feature Showcase Cards (Symplr benchmark) ───────────────────── */
+
+.feature-card {
+  background: var(--white);
+  border-radius: 20px;
+  padding: 28px 24px;
+  border: 1px solid var(--gray-300);
+  display: grid;
+  gap: 14px;
+  align-content: start;
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.feature-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 10px 30px rgba(12, 37, 68, 0.12);
+}
+
+:root[data-theme="dark"] .feature-card:hover {
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4);
+}
+
+.feature-card-icon {
+  width: 56px;
+  height: 56px;
+  border-radius: 14px;
+  background: var(--green-100);
+  color: var(--blue-500);
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+}
+
+.feature-card h3 {
+  font-size: 1.1rem;
+  margin: 0;
+}
+
+.feature-card p {
+  color: var(--gray-600);
+  font-size: 0.95rem;
+  margin: 0;
+}
+
+.feature-card-link {
+  color: var(--blue-500);
+  font-weight: 700;
+  font-size: 0.9rem;
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin-top: 4px;
+}
+
+.feature-card-link:hover {
+  text-decoration: underline;
+}
+
+.feature-card-link:focus-visible {
+  outline: 2px solid var(--blue-500);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+/* ── Roles / Persona Section ─────────────────────────────────────── */
+
+.roles-section {
+  background: var(--gray-100);
+}
+
+.roles-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
+  gap: 20px;
+}
+
+.role-card {
+  background: var(--white);
+  border-radius: 20px;
+  padding: 24px;
+  border: 1px solid var(--gray-300);
+  display: grid;
+  gap: 10px;
+  align-content: start;
+  text-decoration: none;
+  color: inherit;
+  transition: transform 0.3s ease, box-shadow 0.3s ease, border-color 0.2s ease;
+}
+
+.role-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 10px 30px rgba(12, 37, 68, 0.12);
+  border-color: var(--blue-500);
+}
+
+:root[data-theme="dark"] .role-card:hover {
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4);
+}
+
+.role-card-icon {
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  background: linear-gradient(135deg, var(--blue-500), var(--green-500));
+  color: #ffffff;
+  display: grid;
+  place-items: center;
+}
+
+.role-card-title {
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin: 0;
+}
+
+.role-card-desc {
+  font-size: 0.9rem;
+  color: var(--gray-600);
+  margin: 0;
+  line-height: 1.55;
+}
+
+.role-card-cta {
+  font-size: 0.88rem;
+  font-weight: 700;
+  color: var(--blue-500);
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin-top: 2px;
+}
+
+/* ── Stats Strip (dark band) ─────────────────────────────────────── */
+
+.stats-strip-section {
+  background: var(--blue-900);
+  padding: 52px 0;
+}
+
+:root[data-theme="dark"] .stats-strip-section {
+  background: #060c18;
+}
+
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 24px;
+  text-align: center;
+}
+
+.stat-value {
+  font-size: clamp(1.8rem, 3vw, 2.6rem);
+  font-weight: 800;
+  color: var(--green-500);
+  line-height: 1.1;
+}
+
+.stat-label {
+  font-size: 0.88rem;
+  color: rgba(255, 255, 255, 0.72);
+  margin-top: 6px;
+  line-height: 1.4;
+}
+
+@media (max-width: 700px) {
+  .stats-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 20px;
+  }
+}
+
+/* ── Testimonial ─────────────────────────────────────────────────── */
+
+.testimonial-section {
+  background: var(--green-100);
+}
+
+.testimonial-card {
+  background: var(--white);
+  border-radius: 24px;
+  padding: 40px;
+  border: 1px solid var(--gray-300);
+  box-shadow: var(--shadow-sm);
+  max-width: 740px;
+  margin: 0 auto;
+  text-align: center;
+  display: grid;
+  gap: 20px;
+}
+
+.testimonial-quote-mark {
+  font-size: 3.5rem;
+  line-height: 1;
+  color: var(--blue-500);
+  opacity: 0.35;
+  margin-bottom: -8px;
+  font-family: Georgia, serif;
+}
+
+.testimonial-quote {
+  font-size: clamp(1.05rem, 2vw, 1.2rem);
+  color: var(--text-primary);
+  font-style: italic;
+  line-height: 1.75;
+  margin: 0;
+}
+
+.testimonial-byline {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.testimonial-author {
+  font-weight: 700;
+  color: var(--text-primary);
+  font-size: 0.95rem;
+}
+
+.testimonial-role-label {
+  font-size: 0.85rem;
+  color: var(--gray-600);
+}
+
+/* ── About — value blocks with icons ─────────────────────────────── */
+
+.value-blocks-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 28px;
+}
+
+.value-block {
+  display: grid;
+  gap: 12px;
+  align-content: start;
+}
+
+.value-block-icon {
+  width: 48px;
+  height: 48px;
+  border-radius: 12px;
+  background: var(--green-100);
+  color: var(--blue-500);
+  display: grid;
+  place-items: center;
+}
+
+.value-block h3 {
+  font-size: 1.08rem;
+  margin: 0;
+}
+
+.value-block p {
+  color: var(--gray-600);
+  font-size: 0.95rem;
+  margin: 0;
+  line-height: 1.6;
+}
+
+/* ── Footer enhancements ─────────────────────────────────────────── */
+
+.footer-logo-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 4px;
+}
+
+.footer-logo {
+  width: 30px;
+  height: 30px;
+  font-size: 0.8rem;
+  flex-shrink: 0;
+}
+
+.footer-links {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 4px;
+}
+
+.footer-links a {
+  color: var(--green-500);
+  text-decoration: none;
+  font-size: 0.9rem;
+  opacity: 0.85;
+}
+
+.footer-links a:hover {
+  opacity: 1;
+  text-decoration: underline;
+}
+
+.footer-bottom-links {
+  display: flex;
+  gap: 16px;
+  opacity: 0.55;
+}
+
+.footer-bottom {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+/* ── hide-mobile utility ─────────────────────────────────────────── */
+
+@media (max-width: 768px) {
+  .hide-mobile {
+    display: none;
+  }
+}
+
