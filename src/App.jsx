@@ -11,6 +11,7 @@ import AdminCreateUser from "./pages/AdminCreateUser.jsx";
 import AdminLogin from "./pages/AdminLogin.jsx";
 import AdminGuard from "./components/AdminGuard.jsx";
 import TrustsData from "./pages/TrustsData.jsx";
+import NotFound from "./pages/NotFound.jsx";
 
 export default function App() {
   return (
@@ -33,6 +34,7 @@ export default function App() {
             </AdminGuard>
           }
         />
+        <Route path="*" element={<NotFound />} />
       </Routes>
     </Layout>
   );

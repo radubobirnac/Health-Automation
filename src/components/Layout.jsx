@@ -29,6 +29,7 @@ export default function Layout({ children }) {
 
   return (
     <>
+      <a className="skip-link" href="#main-content">Skip to main content</a>
       <header className="site-header">
         <div className="container nav-wrap">
           <div className="brand">
@@ -39,11 +40,11 @@ export default function Layout({ children }) {
             </div>
           </div>
           <nav className="nav" aria-label="Main">
-            <Link to="/">Home</Link>
-            <Link to="/about">About</Link>
-            <Link to="/contact">Contact</Link>
-            <Link to="/security">Security</Link>
-            <Link to="/login">Client Portal</Link>
+            <Link to="/" className={location.pathname === "/" ? "nav-active" : ""} aria-current={location.pathname === "/" ? "page" : undefined}>Home</Link>
+            <Link to="/about" className={location.pathname === "/about" ? "nav-active" : ""} aria-current={location.pathname === "/about" ? "page" : undefined}>About</Link>
+            <Link to="/contact" className={location.pathname === "/contact" ? "nav-active" : ""} aria-current={location.pathname === "/contact" ? "page" : undefined}>Contact</Link>
+            <Link to="/security" className={location.pathname === "/security" ? "nav-active" : ""} aria-current={location.pathname === "/security" ? "page" : undefined}>Security</Link>
+            <Link to="/login" className={location.pathname === "/login" ? "nav-active" : ""} aria-current={location.pathname === "/login" ? "page" : undefined}>Client Portal</Link>
           </nav>
           <div className="nav-actions" aria-label="Actions">
             <Link className="btn btn-outline" to="/contact">
@@ -86,7 +87,7 @@ export default function Layout({ children }) {
         </div>
       </header>
 
-      <main>{children}</main>
+      <main id="main-content">{children}</main>
 
       <footer className="site-footer">
         <div className="container footer-grid">

@@ -115,13 +115,13 @@ export default function Contact() {
               {status.state === "sending" ? "Sending..." : "Request Demo"}
             </button>
             <p className="form-note">
-              
-            </p>
-            <p className="form-note">
               We will never share your data. Credentials are collected only after demo approval.
             </p>
             {status.message && (
-              <p className="form-note" aria-live="polite">
+              <p
+                className={`form-note form-status ${status.state === "error" ? "is-error" : "is-success"}`}
+                aria-live="polite"
+              >
                 {status.message}
               </p>
             )}

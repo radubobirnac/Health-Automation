@@ -30,7 +30,7 @@ export default function Security() {
         <div className="container security-faq-grid">
           {securityFaq.map((item) => (
             <article key={item.id} className="security-faq-item">
-              <h2>{item.question}</h2>
+              <h3>{item.question}</h3>
               <p>{item.answer}</p>
             </article>
           ))}

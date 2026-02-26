@@ -67,8 +67,15 @@ export default function About() {
             </p>
           </div>
           <div className="demo-video">
-            <div className="video-placeholder">
-              <span>About Page Video Placeholder</span>
+            <div className="video-placeholder" role="img" aria-label="Automation walkthrough video coming soon">
+              <div className="video-placeholder-inner">
+                <div className="video-play-btn" aria-hidden="true">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="currentColor">
+                    <polygon points="5 3 19 12 5 21 5 3"/>
+                  </svg>
+                </div>
+                <span className="video-placeholder-label">Automation walkthrough coming soon</span>
+              </div>
             </div>
           </div>
         </div>
