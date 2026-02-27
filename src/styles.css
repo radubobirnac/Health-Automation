@@ -125,6 +125,44 @@ body {
   margin-left: auto;
 }
 
+.mobile-nav-toggle {
+  display: none;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  border-radius: 999px;
+  border: 1px solid var(--gray-300);
+  background: var(--white);
+  color: var(--text-primary);
+}
+
+.mobile-nav-icon {
+  width: 20px;
+  height: 2px;
+  background: currentColor;
+  position: relative;
+  display: block;
+}
+
+.mobile-nav-icon::before,
+.mobile-nav-icon::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  width: 20px;
+  height: 2px;
+  background: currentColor;
+}
+
+.mobile-nav-icon::before {
+  top: -6px;
+}
+
+.mobile-nav-icon::after {
+  top: 6px;
+}
+
 .nav a {
   color: var(--text-primary);
   text-decoration: none;
@@ -159,6 +197,23 @@ body {
 .btn:hover {
   transform: translateY(-1px);
   box-shadow: 0 12px 24px rgba(31, 111, 178, 0.15);
+}
+
+.btn:focus-visible,
+.nav a:focus-visible,
+.mobile-nav-links a:focus-visible,
+.mobile-nav-toggle:focus-visible,
+.mobile-nav-close:focus-visible,
+.sheet-tab:focus-visible,
+.calendar-nav button:focus-visible,
+.shift-select:focus-visible,
+.single-select-input:focus-visible,
+.contact-form input:focus-visible,
+.contact-form textarea:focus-visible,
+.auth-card input:focus-visible,
+.auth-card textarea:focus-visible {
+  outline: 2px solid var(--blue-500);
+  outline-offset: 2px;
 }
 
 .btn-primary {
@@ -1455,11 +1510,31 @@ body {
   min-height: 68px;
   border-radius: 12px;
   background: var(--gray-100);
+  border: 1px solid transparent;
   padding: 8px;
   font-size: 0.85rem;
   display: grid;
   gap: 4px;
   cursor: pointer;
+  text-align: left;
+  color: inherit;
+  font-family: inherit;
+}
+
+.calendar-empty {
+  background: transparent;
+  border: 1px dashed rgba(214, 221, 230, 0.6);
+  cursor: default;
+}
+
+.calendar-cell:disabled {
+  cursor: default;
+  opacity: 0.6;
+}
+
+.calendar-cell:focus-visible {
+  outline: 2px solid var(--blue-500);
+  outline-offset: 2px;
 }
 
 .calendar-day {
@@ -1510,6 +1585,98 @@ body {
   border-radius: 14px;
 }
 
+.mobile-nav-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(12, 37, 68, 0.45);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.2s ease;
+  z-index: 20;
+}
+
+.mobile-nav-backdrop.is-open {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.mobile-nav {
+  position: fixed;
+  top: 0;
+  right: 0;
+  height: 100vh;
+  width: min(360px, 88vw);
+  background: var(--white);
+  border-left: 1px solid var(--gray-300);
+  box-shadow: var(--shadow);
+  transform: translateX(100%);
+  transition: transform 0.25s ease;
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  z-index: 25;
+  visibility: hidden;
+  pointer-events: none;
+}
+
+:root[data-theme="dark"] .mobile-nav {
+  background: #0b1220;
+  border-color: var(--gray-300);
+}
+
+.mobile-nav.is-open {
+  transform: translateX(0);
+  visibility: visible;
+  pointer-events: auto;
+}
+
+.mobile-nav-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.mobile-nav-title {
+  font-weight: 700;
+  font-size: 1rem;
+}
+
+.mobile-nav-close {
+  border: 1px solid var(--gray-300);
+  background: transparent;
+  border-radius: 999px;
+  padding: 6px 12px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.mobile-nav-links {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.mobile-nav-links a {
+  text-decoration: none;
+  color: var(--text-primary);
+  font-weight: 600;
+  padding: 6px 2px;
+  border-bottom: 1px solid transparent;
+}
+
+.mobile-nav-links a.nav-active {
+  color: var(--blue-500);
+  border-bottom-color: var(--blue-500);
+}
+
+.mobile-nav-actions {
+  display: grid;
+  gap: 10px;
+  margin-top: auto;
+}
+
 /* footer styles moved to end of file */
 
 @media (max-width: 900px) {
@@ -1522,6 +1689,14 @@ body {
 
   .nav {
     display: none;
+  }
+
+  .nav-actions {
+    display: none;
+  }
+
+  .mobile-nav-toggle {
+    display: inline-flex;
   }
 
   .sheet-tabs {
@@ -1569,8 +1744,9 @@ body {
 
 @media (max-width: 700px) {
   .nav-wrap {
-    flex-direction: column;
-    align-items: flex-start;
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
   }
 
   .nav-actions {

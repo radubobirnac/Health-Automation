@@ -77,9 +77,13 @@ const buildMonth = (baseDate, monthOffset, parsedDates, selectedDate) => {
     return { dayNumber, count: counts[dayNumber] || 0 };
   });
 
-  const selectedDay = selectedDate
-    ? parseSheetDate(selectedDate)?.getDate()
-    : null;
+  const selectedParsed = selectedDate ? parseSheetDate(selectedDate) : null;
+  const selectedDay =
+    selectedParsed &&
+    selectedParsed.getFullYear() === year &&
+    selectedParsed.getMonth() === month
+      ? selectedParsed.getDate()
+      : null;
 
   return { year, month, cells, selectedDay };
 };
@@ -129,51 +133,55 @@ export default function CalendarView({
                   {day}
                 </div>
               ))}
-              {monthData.cells.map((cell, idx) => (
-                <div
-                  key={`${cell.dayNumber ?? "empty"}-${idx}`}
-                  className={`calendar-cell${
-                    cell.dayNumber === monthData.selectedDay ? " calendar-selected" : ""
-                  }`}
-                  onClick={() => {
-                    if (!cell.dayNumber) return;
-                    const dateKey = `${String(cell.dayNumber).padStart(2, "0")}-${MONTHS[
-                      monthData.month
-                    ].slice(0, 3)}-${monthData.year}`;
-                    onSelectDate?.(dateKey);
-                  }}
-                >
-                  {cell.dayNumber && (
-                    <>
-                      <span className="calendar-date">{cell.dayNumber}</span>
-                      {cell.count > 0 && (
-                        <span className="calendar-count">{cell.count} shifts</span>
-                      )}
-                      {selectedDate &&
-                        parseSheetDate(selectedDate)?.getDate() === cell.dayNumber &&
-                        parseSheetDate(selectedDate)?.getMonth() === monthData.month &&
-                        parseSheetDate(selectedDate)?.getFullYear() ===
-                          monthData.year && (
-                          <div className="calendar-select">
-                            <select
-                              value={dateShiftMap?.[selectedDate] || ""}
-                              onChange={(event) =>
-                                onDateShiftChange?.(selectedDate, event.target.value)
-                              }
-                            >
-                              <option value="">Select shift type</option>
-                              {shiftTypes.map((option) => (
-                                <option key={option} value={option}>
-                                  {option}
-                                </option>
-                              ))}
-                            </select>
-                          </div>
-                        )}
-                    </>
-                  )}
-                </div>
-              ))}
+              {monthData.cells.map((cell, idx) => {
+                if (!cell.dayNumber) {
+                  return (
+                    <div
+                      key={`empty-${idx}`}
+                      className="calendar-cell calendar-empty"
+                      aria-hidden="true"
+                    />
+                  );
+                }
+
+                const dateKey = `${String(cell.dayNumber).padStart(2, "0")}-${MONTHS[
+                  monthData.month
+                ].slice(0, 3)}-${monthData.year}`;
+                const isSelected = cell.dayNumber === monthData.selectedDay;
+
+                return (
+                  <button
+                    key={`${cell.dayNumber}-${idx}`}
+                    type="button"
+                    className={`calendar-cell${isSelected ? " calendar-selected" : ""}`}
+                    aria-pressed={isSelected}
+                    aria-label={`Select ${dateKey}`}
+                    onClick={() => onSelectDate?.(dateKey)}
+                  >
+                    <span className="calendar-date">{cell.dayNumber}</span>
+                    {cell.count > 0 && (
+                      <span className="calendar-count">{cell.count} shifts</span>
+                    )}
+                    {isSelected && (
+                      <div className="calendar-select">
+                        <select
+                          value={dateShiftMap?.[selectedDate] || ""}
+                          onChange={(event) =>
+                            onDateShiftChange?.(selectedDate, event.target.value)
+                          }
+                        >
+                          <option value="">Select shift type</option>
+                          {shiftTypes.map((option) => (
+                            <option key={option} value={option}>
+                              {option}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+                    )}
+                  </button>
+                );
+              })}
             </div>
           </div>
         ))}

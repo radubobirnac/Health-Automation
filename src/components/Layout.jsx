@@ -10,6 +10,7 @@ const getInitialTheme = () => {
 
 export default function Layout({ children }) {
   const [theme, setTheme] = useState(getInitialTheme);
+  const [isMobileNavOpen, setIsMobileNavOpen] = useState(false);
   const navigate = useNavigate();
   const location = useLocation();
   const isAuthed = useMemo(() => Boolean(localStorage.getItem("hr_token")), [location.pathname]);
@@ -20,6 +21,28 @@ export default function Layout({ children }) {
     root.style.colorScheme = theme;
     localStorage.setItem(THEME_STORAGE_KEY, theme);
   }, [theme]);
+
+  useEffect(() => {
+    setIsMobileNavOpen(false);
+  }, [location.pathname]);
+
+  useEffect(() => {
+    if (!isMobileNavOpen) {
+      document.body.style.overflow = "";
+      return;
+    }
+    document.body.style.overflow = "hidden";
+    const handleKey = (event) => {
+      if (event.key === "Escape") {
+        setIsMobileNavOpen(false);
+      }
+    };
+    document.addEventListener("keydown", handleKey);
+    return () => {
+      document.body.style.overflow = "";
+      document.removeEventListener("keydown", handleKey);
+    };
+  }, [isMobileNavOpen]);
 
   const handleSignOff = () => {
     localStorage.removeItem("hr_token");
@@ -84,8 +107,69 @@ export default function Layout({ children }) {
               </Link>
             )}
           </div>
+          <button
+            className="mobile-nav-toggle"
+            type="button"
+            aria-label={isMobileNavOpen ? "Close menu" : "Open menu"}
+            aria-expanded={isMobileNavOpen}
+            aria-controls="mobile-nav"
+            onClick={() => setIsMobileNavOpen((prev) => !prev)}
+          >
+            <span className="mobile-nav-icon" aria-hidden="true" />
+          </button>
         </div>
       </header>
+
+      <div
+        className={`mobile-nav-backdrop${isMobileNavOpen ? " is-open" : ""}`}
+        onClick={() => setIsMobileNavOpen(false)}
+        aria-hidden={!isMobileNavOpen}
+      />
+      <nav
+        id="mobile-nav"
+        className={`mobile-nav${isMobileNavOpen ? " is-open" : ""}`}
+        aria-label="Mobile"
+        aria-hidden={!isMobileNavOpen}
+      >
+        <div className="mobile-nav-header">
+          <div className="mobile-nav-title">Navigate</div>
+          <button
+            className="mobile-nav-close"
+            type="button"
+            onClick={() => setIsMobileNavOpen(false)}
+          >
+            Close
+          </button>
+        </div>
+        <div className="mobile-nav-links">
+          <Link to="/" className={location.pathname === "/" ? "nav-active" : ""}>Home</Link>
+          <Link to="/about" className={location.pathname === "/about" ? "nav-active" : ""}>About</Link>
+          <Link to="/contact" className={location.pathname === "/contact" ? "nav-active" : ""}>Contact</Link>
+          <Link to="/security" className={location.pathname === "/security" ? "nav-active" : ""}>Security</Link>
+          <Link to="/login" className={location.pathname === "/login" ? "nav-active" : ""}>Client Portal</Link>
+        </div>
+        <div className="mobile-nav-actions">
+          <Link className="btn btn-outline" to="/contact">
+            Book a Free Demo
+          </Link>
+          <button
+            className="btn btn-outline"
+            type="button"
+            onClick={() => setTheme((prev) => (prev === "dark" ? "light" : "dark"))}
+          >
+            {theme === "dark" ? "Light Mode" : "Dark Mode"}
+          </button>
+          {isAuthed ? (
+            <button className="btn btn-primary" type="button" onClick={handleSignOff}>
+              Sign-Off
+            </button>
+          ) : (
+            <Link className="btn btn-primary" to="/login">
+              Sign-In
+            </Link>
+          )}
+        </div>
+      </nav>
 
       <main id="main-content">{children}</main>
 

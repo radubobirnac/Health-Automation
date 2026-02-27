@@ -1,12 +1,55 @@
+import { useEffect, useRef } from "react";
+
 export default function HistoryModal({ isOpen, onClose, title, history, loading }) {
+  const closeRef = useRef(null);
+  const modalRef = useRef(null);
+
+  useEffect(() => {
+    if (!isOpen) return;
+    const previousActive = document.activeElement;
+    closeRef.current?.focus();
+
+    const handleKeyDown = (event) => {
+      if (event.key === "Escape") {
+        event.preventDefault();
+        onClose?.();
+        return;
+      }
+      if (event.key !== "Tab") return;
+      const focusable = modalRef.current?.querySelectorAll(
+        'a[href], button, input, select, textarea, [tabindex]:not([tabindex="-1"])'
+      );
+      if (!focusable || focusable.length === 0) return;
+      const first = focusable[0];
+      const last = focusable[focusable.length - 1];
+      if (event.shiftKey && document.activeElement === first) {
+        event.preventDefault();
+        last.focus();
+      } else if (!event.shiftKey && document.activeElement === last) {
+        event.preventDefault();
+        first.focus();
+      }
+    };
+
+    document.addEventListener("keydown", handleKeyDown);
+    return () => {
+      document.removeEventListener("keydown", handleKeyDown);
+      if (previousActive instanceof HTMLElement) {
+        previousActive.focus();
+      }
+    };
+  }, [isOpen, onClose]);
+
   if (!isOpen) return null;
 
+  const titleId = "history-modal-title";
+
   return (
-    <div className="modal-backdrop" role="dialog" aria-modal="true">
-      <div className="modal-card">
+    <div className="modal-backdrop" role="dialog" aria-modal="true" aria-labelledby={titleId}>
+      <div className="modal-card" ref={modalRef}>
         <div className="modal-header">
-          <h3>{title}</h3>
-          <button type="button" className="modal-close" onClick={onClose}>
+          <h3 id={titleId}>{title}</h3>
+          <button type="button" className="modal-close" onClick={onClose} ref={closeRef}>
             Close
           </button>
         </div>
