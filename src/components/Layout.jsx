@@ -67,6 +67,9 @@ export default function Layout({ children }) {
             <Link to="/about" className={location.pathname === "/about" ? "nav-active" : ""} aria-current={location.pathname === "/about" ? "page" : undefined}>About</Link>
             <Link to="/contact" className={location.pathname === "/contact" ? "nav-active" : ""} aria-current={location.pathname === "/contact" ? "page" : undefined}>Contact</Link>
             <Link to="/security" className={location.pathname === "/security" ? "nav-active" : ""} aria-current={location.pathname === "/security" ? "page" : undefined}>Security</Link>
+            {isAuthed && (
+              <Link to="/portal-data" className={location.pathname === "/portal-data" ? "nav-active" : ""} aria-current={location.pathname === "/portal-data" ? "page" : undefined}>Portal Data</Link>
+            )}
             <Link to="/login" className={location.pathname === "/login" ? "nav-active" : ""} aria-current={location.pathname === "/login" ? "page" : undefined}>Client Portal</Link>
           </nav>
           <div className="nav-actions" aria-label="Actions">
@@ -146,6 +149,9 @@ export default function Layout({ children }) {
           <Link to="/about" className={location.pathname === "/about" ? "nav-active" : ""}>About</Link>
           <Link to="/contact" className={location.pathname === "/contact" ? "nav-active" : ""}>Contact</Link>
           <Link to="/security" className={location.pathname === "/security" ? "nav-active" : ""}>Security</Link>
+          {isAuthed && (
+            <Link to="/portal-data" className={location.pathname === "/portal-data" ? "nav-active" : ""}>Portal Data</Link>
+          )}
           <Link to="/login" className={location.pathname === "/login" ? "nav-active" : ""}>Client Portal</Link>
         </div>
         <div className="mobile-nav-actions">

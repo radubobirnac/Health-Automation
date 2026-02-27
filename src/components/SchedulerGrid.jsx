@@ -327,7 +327,6 @@ export default function SchedulerGrid({
                               <select
                                 className="shift-select"
                                 value={shiftValue}
-                                style={shiftStyle}
                                 onChange={(event) =>
                                   onShiftChange(nurse.id, dateKey, event.target.value)
                                 }

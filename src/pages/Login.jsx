@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
+import { authedFetch } from "../utils/api.js";
 const initialState = {
   username: "",
   password: ""
@@ -37,6 +38,12 @@ export default function Login() {
         "hr_auth",
         JSON.stringify({ username: payload.username, role: payload.role })
       );
+      const verify = await authedFetch("/auth/me");
+      if (!verify.ok) {
+        localStorage.removeItem("hr_token");
+        localStorage.removeItem("hr_auth");
+        throw new Error("Session verification failed.");
+      }
       setStatus({ state: "success", message: "Signed in successfully." });
       navigate("/app");
     } catch (error) {

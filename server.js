@@ -8,7 +8,7 @@ import { handleApiRequest } from "./scripts/api.js";
 const distDir = path.resolve(process.cwd(), "dist");
 const port = Number(process.env.PORT || 8080);
 
-const apiPrefixes = ["/auth", "/admin-api", "/sheets", "/schedule", "/nurses", "/data"];
+const apiPrefixes = ["/auth", "/admin-api", "/sheets", "/schedule", "/nurses", "/data", "/shift-types"];
 
 const contentTypes = {
   ".html": "text/html; charset=utf-8",

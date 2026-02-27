@@ -1,66 +1,73 @@
+// Light mode: medium-saturation backgrounds, dark text (≥4.5:1 contrast)
+// Dark mode: mid-level backgrounds (~30-40% lightness), light text (~90% lightness)
 const SHIFT_COLOR_MAP = {
   LD: {
-    bg: "#F8E7D2",
-    text: "#5C3A1A",
-    border: "#E9D2B6",
-    hover: "#F1DABF",
-    bgDark: "#2D231A",
-    textDark: "#F6EBDD",
-    borderDark: "#3A2D22",
-    hoverDark: "#34281E"
+    // Warm amber — long day
+    bg: "#FEF3C7",
+    text: "#78350F",
+    border: "#FCD34D",
+    hover: "#FDE68A",
+    bgDark: "#3D2800",
+    textDark: "#FDE68A",
+    borderDark: "#92400E",
+    hoverDark: "#451A03"
   },
   E: {
-    bg: "#DDEFF4",
-    text: "#1E4F5A",
-    border: "#C6E0E7",
-    hover: "#D1E7EE",
-    bgDark: "#1B2D34",
-    textDark: "#D9F2F6",
-    borderDark: "#253C45",
-    hoverDark: "#20343C"
+    // Sky blue — early
+    bg: "#E0F2FE",
+    text: "#0C4A6E",
+    border: "#7DD3FC",
+    hover: "#BAE6FD",
+    bgDark: "#0C2D3F",
+    textDark: "#BAE6FD",
+    borderDark: "#0369A1",
+    hoverDark: "#0A1F2E"
   },
   N: {
-    bg: "#2A344D",
-    text: "#F8FAFC",
-    border: "#3A4766",
-    hover: "#303D59",
-    bgDark: "#141A2B",
-    textDark: "#E9EEFF",
-    borderDark: "#1F2740",
-    hoverDark: "#192138"
+    // Indigo — night
+    bg: "#EEF2FF",
+    text: "#1E1B4B",
+    border: "#A5B4FC",
+    hover: "#C7D2FE",
+    bgDark: "#1E1B3A",
+    textDark: "#C7D2FE",
+    borderDark: "#4338CA",
+    hoverDark: "#16143A"
   },
   AE: {
-    bg: "#EEE4F6",
-    text: "#4B3668",
-    border: "#DCCEEB",
-    hover: "#E4D6F0",
-    bgDark: "#241B2F",
-    textDark: "#F3ECFF",
-    borderDark: "#30233E",
-    hoverDark: "#2A1F37"
+    // Violet — acute/emergency
+    bg: "#F5F3FF",
+    text: "#3B0764",
+    border: "#C4B5FD",
+    hover: "#DDD6FE",
+    bgDark: "#2D1B4E",
+    textDark: "#DDD6FE",
+    borderDark: "#7C3AED",
+    hoverDark: "#1E1035"
   }
 };
 
 const BANK_COLOR = {
-  bg: "#DFF2E2",
-  text: "#1F4D2F",
-  border: "#C7E4D1",
-  hover: "#D3EAD8",
-  bgDark: "#1B2E24",
-  textDark: "#E3F6EA",
-  borderDark: "#243C2F",
-  hoverDark: "#1F352B"
+  // Green — bank shift
+  bg: "#DCFCE7",
+  text: "#14532D",
+  border: "#86EFAC",
+  hover: "#BBF7D0",
+  bgDark: "#0F2E1A",
+  textDark: "#BBF7D0",
+  borderDark: "#16A34A",
+  hoverDark: "#052E16"
 };
 
 const DEFAULT_SHIFT_COLOR = {
-  bg: "#EEF2F7",
-  text: "#3F4B5F",
-  border: "#D6DEE8",
-  hover: "#E4EAF2",
-  bgDark: "#1B2330",
-  textDark: "#E6EDF4",
-  borderDark: "#273142",
-  hoverDark: "#202A3A"
+  bg: "#F1F5F9",
+  text: "#1E293B",
+  border: "#CBD5E1",
+  hover: "#E2E8F0",
+  bgDark: "#1E293B",
+  textDark: "#E2E8F0",
+  borderDark: "#475569",
+  hoverDark: "#0F172A"
 };
 
 const getTheme = (theme) => {

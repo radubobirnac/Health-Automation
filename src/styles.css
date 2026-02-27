@@ -1250,19 +1250,24 @@ body {
 
 .shift-select {
   width: 100%;
-  padding: 2px 4px;
+  padding: 2px 20px 2px 4px;
   border-radius: 8px;
   border: 1px solid var(--shift-border, var(--gray-300));
   font-family: inherit;
-  background: var(--shift-bg, var(--white));
+  background-color: var(--shift-bg, var(--white));
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%236b7280' stroke-width='1.5' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 5px center;
   color: var(--shift-text, var(--text-primary));
   height: 28px;
+  appearance: none;
+  -webkit-appearance: none;
   transition: background-color 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease;
 }
 
 .shift-select:hover,
 .shift-select:focus {
-  background: var(--shift-hover, var(--shift-bg, var(--white)));
+  background-color: var(--shift-hover, var(--shift-bg, var(--white)));
   border-color: var(--shift-border-strong, var(--shift-border, var(--gray-300)));
   box-shadow: 0 0 0 2px rgba(15, 23, 42, 0.06);
 }

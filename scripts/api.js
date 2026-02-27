@@ -13,6 +13,8 @@ const createLogsSheet = () => ({
   created_at: new Date().toISOString()
 });
 
+const DEFAULT_SHIFT_TYPES = ["LD", "E", "N", "AE"];
+
 const createUserSeed = (clientName = "") => {
   const seed = {
     sheets: clone(DEFAULT_SHEETS),
@@ -22,6 +24,7 @@ const createUserSeed = (clientName = "") => {
     shiftsBySheet: {
       "sheet-main": clone(DEFAULT_SHIFTS)
     },
+    shiftTypes: clone(DEFAULT_SHIFT_TYPES),
     dataRows: []
   };
   if (!seed.sheets.some((sheet) => sheet.sheet_id === "logs")) {
@@ -73,6 +76,7 @@ const loadUserDb = async (userId) => {
   if (doc.exists) {
     const data = doc.data();
     data.dataRows = data.dataRows || [];
+    data.shiftTypes = data.shiftTypes || clone(DEFAULT_SHIFT_TYPES);
     return data;
   }
   const seed = createUserSeed();
@@ -423,8 +427,8 @@ export const handleApiRequest = async ({ method, path, query = {}, body, headers
       await logAudit({
         action: "data_ingest",
         status: "invalid_payload",
-        user_id: authResult.user_id,
-        role: authResult.role
+        user_id: "ingest-bot",
+        role: "ingest"
       });
       return response(400, { error: "Payload must include rows." });
     }
@@ -444,8 +448,8 @@ export const handleApiRequest = async ({ method, path, query = {}, body, headers
       await logAudit({
         action: "data_ingest",
         status: "validation_error",
-        user_id: authResult.user_id,
-        role: authResult.role,
+        user_id: "ingest-bot",
+        role: "ingest",
         error_count: errors.length
       });
       return response(400, { error: "Validation failed.", details: errors });
@@ -564,6 +568,7 @@ export const handleApiRequest = async ({ method, path, query = {}, body, headers
 
   if (upperMethod === "POST" && path === "/sheets/duplicate") {
     const userDb = await loadUserDb(userId);
+    ensureLogsSheet(userDb);
     const sourceId = body?.sheet_id;
     const source = userDb.sheets.find((sheet) => sheet.sheet_id === sourceId);
     if (!source) {
@@ -705,6 +710,59 @@ export const handleApiRequest = async ({ method, path, query = {}, body, headers
     return response(200, { ok: true });
   }
 
+  if (upperMethod === "GET" && path === "/shift-types") {
+    const userDb = await loadUserDb(userId);
+    return response(200, { shiftTypes: userDb.shiftTypes || clone(DEFAULT_SHIFT_TYPES) });
+  }
+
+  if (upperMethod === "POST" && path === "/shift-types/upsert") {
+    const oldName = normalizeName(body?.old_name).toUpperCase();
+    const newName = normalizeName(body?.new_name).toUpperCase();
+    if (!newName) {
+      return response(400, { error: "new_name is required." });
+    }
+    if (newName.length > 6) {
+      return response(400, { error: "Shift type name must be 6 characters or fewer." });
+    }
+    const userDb = await loadUserDb(userId);
+    const types = userDb.shiftTypes || clone(DEFAULT_SHIFT_TYPES);
+    if (oldName) {
+      const index = types.indexOf(oldName);
+      if (index === -1) {
+        return response(404, { error: "Shift type not found." });
+      }
+      if (newName !== oldName && types.includes(newName)) {
+        return response(409, { error: "Shift type already exists." });
+      }
+      types[index] = newName;
+    } else {
+      if (types.includes(newName)) {
+        return response(409, { error: "Shift type already exists." });
+      }
+      types.push(newName);
+    }
+    userDb.shiftTypes = types;
+    await saveUserDb(userId, userDb);
+    return response(200, { shiftTypes: types });
+  }
+
+  if (upperMethod === "POST" && path === "/shift-types/delete") {
+    const name = normalizeName(body?.name).toUpperCase();
+    if (!name) {
+      return response(400, { error: "name is required." });
+    }
+    const userDb = await loadUserDb(userId);
+    const types = userDb.shiftTypes || clone(DEFAULT_SHIFT_TYPES);
+    const index = types.indexOf(name);
+    if (index === -1) {
+      return response(404, { error: "Shift type not found." });
+    }
+    types.splice(index, 1);
+    userDb.shiftTypes = types;
+    await saveUserDb(userId, userDb);
+    return response(200, { shiftTypes: types });
+  }
+
   return response(404, { error: "Not found." });
 };
 
@@ -720,7 +778,8 @@ export const createViteMiddleware = () => {
         path.startsWith("/nurses") ||
         path.startsWith("/data") ||
         path.startsWith("/admin-api") ||
-        path.startsWith("/auth")
+        path.startsWith("/auth") ||
+        path.startsWith("/shift-types")
       )
     ) {
       next();

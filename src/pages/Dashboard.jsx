@@ -2,9 +2,8 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import SchedulerGrid from "../components/SchedulerGrid.jsx";
 import SheetGrid from "../components/SheetGrid.jsx";
+import ShiftTypeManager from "../components/ShiftTypeManager.jsx";
 import { authedFetch } from "../utils/api.js";
-
-const SHIFT_TYPES = ["LD", "E", "N", "AE"];
 const LOG_COLUMNS = ["Column A", "Column B", "Column C", "Column D", "Column E", "Column F"];
 
 const buildDateRange = (start, end) => {
@@ -57,6 +56,8 @@ export default function Dashboard() {
   const [nurses, setNurses] = useState([]);
   const [shifts, setShifts] = useState({});
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [shiftTypes, setShiftTypes] = useState(["LD", "E", "N", "AE"]);
+  const [showShiftManager, setShowShiftManager] = useState(false);
   const sheetCacheRef = useRef(new Map());
   const lastLocalUpdateRef = useRef({});
   const lastServerSyncRef = useRef({});
@@ -72,6 +73,7 @@ export default function Dashboard() {
   });
   const [userId, setUserId] = useState("");
   const [isAdmin, setIsAdmin] = useState(false);
+  const [authChecked, setAuthChecked] = useState(false);
   const navigate = useNavigate();
 
   const markLocalUpdate = () => {
@@ -103,6 +105,7 @@ export default function Dashboard() {
           "hr_auth",
           JSON.stringify({ username: payload?.username, role: payload?.role })
         );
+        setAuthChecked(true);
       } catch (error) {
         if (!isActive) return;
         setUserId("");
@@ -217,6 +220,23 @@ export default function Dashboard() {
       controller.abort();
     };
   }, [activeSheetId, startDate, endDate, userId, sheets]);
+
+  useEffect(() => {
+    if (!userId) return;
+    const fetchShiftTypes = async () => {
+      try {
+        const response = await authedFetch("/shift-types");
+        if (!response.ok) return;
+        const payload = await response.json();
+        if (payload?.shiftTypes?.length) {
+          setShiftTypes(payload.shiftTypes);
+        }
+      } catch {
+        // keep default shift types on error
+      }
+    };
+    fetchShiftTypes();
+  }, [userId]);
 
   useEffect(() => {
     setSelectedRowIds([]);
@@ -351,7 +371,8 @@ export default function Dashboard() {
       setShifts({});
       dataSheetIdRef.current = created.sheet_id;
     } catch (error) {
-      setStatus({ state: "error", message: "Failed to duplicate sheet." });
+      const msg = error?.message || "Failed to duplicate sheet.";
+      setStatus({ state: "error", message: msg });
     }
   };
 
@@ -526,6 +547,16 @@ export default function Dashboard() {
   const isLogsSheet =
     activeSheet?.sheet_id === "logs" || (activeSheet?.name || "").toLowerCase() === "logs";
 
+  if (!authChecked) {
+    return (
+      <section className="section">
+        <div className="container">
+          <p className="form-note">Loading...</p>
+        </div>
+      </section>
+    );
+  }
+
   return (
     <>
       <section className="dashboard-hero">
@@ -540,9 +571,9 @@ export default function Dashboard() {
             <button
               className="btn btn-outline"
               type="button"
-              onClick={() => navigate("/trusts-data")}
+              onClick={() => navigate("/portal-data")}
             >
-              Trusts Data
+              Portal Data
             </button>
             {isAdmin && (
               <button className="btn btn-outline" type="button" onClick={() => navigate("/admin")}>
@@ -574,6 +605,7 @@ export default function Dashboard() {
             <button
               className="sheet-tab"
               type="button"
+              disabled={isLogsSheet}
               onClick={handleDuplicateSheet}
             >
               Duplicate
@@ -633,14 +665,23 @@ export default function Dashboard() {
                   Add row
                 </button>
                 {!isLogsSheet && (
-                  <button
-                    className="btn btn-danger"
-                    type="button"
-                    disabled={!selectedRowIds.length}
-                    onClick={handleDeleteSelectedRows}
-                  >
-                    Delete Selected Rows
-                  </button>
+                  <>
+                    <button
+                      className="btn btn-outline"
+                      type="button"
+                      onClick={() => setShowShiftManager(true)}
+                    >
+                      Edit shift types
+                    </button>
+                    <button
+                      className="btn btn-danger"
+                      type="button"
+                      disabled={!selectedRowIds.length}
+                      onClick={handleDeleteSelectedRows}
+                    >
+                      Delete Selected Rows
+                    </button>
+                  </>
                 )}
               </div>
               {isLogsSheet ? (
@@ -655,7 +696,7 @@ export default function Dashboard() {
                   nurses={nurses}
                   dates={dates}
                   shifts={shifts}
-                  shiftTypes={SHIFT_TYPES}
+                  shiftTypes={shiftTypes}
                   onShiftChange={handleShiftChange}
                   onBulkShiftChange={handleBulkShiftChange}
                   onNurseChange={handleNurseChange}
@@ -671,6 +712,14 @@ export default function Dashboard() {
           </div>
         </div>
       </section>
+
+      {showShiftManager && (
+        <ShiftTypeManager
+          shiftTypes={shiftTypes}
+          onShiftTypesChange={(next) => setShiftTypes(next)}
+          onClose={() => setShowShiftManager(false)}
+        />
+      )}
 
       {showDeleteConfirm && (
         <div className="modal-backdrop" onClick={() => setShowDeleteConfirm(false)}>

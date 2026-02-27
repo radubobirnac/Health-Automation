@@ -10,6 +10,7 @@ import Dashboard from "./pages/Dashboard.jsx";
 import AdminCreateUser from "./pages/AdminCreateUser.jsx";
 import AdminLogin from "./pages/AdminLogin.jsx";
 import AdminGuard from "./components/AdminGuard.jsx";
+import AuthGuard from "./components/AuthGuard.jsx";
 import TrustsData from "./pages/TrustsData.jsx";
 import NotFound from "./pages/NotFound.jsx";
 
@@ -25,7 +26,14 @@ export default function App() {
         <Route path="/admin-login" element={<AdminLogin />} />
         <Route path="/signup" element={<Signup />} />
         <Route path="/app" element={<Dashboard />} />
-        <Route path="/trusts-data" element={<TrustsData />} />
+        <Route
+          path="/trusts-data"
+          element={<AuthGuard><TrustsData /></AuthGuard>}
+        />
+        <Route
+          path="/portal-data"
+          element={<AuthGuard><TrustsData /></AuthGuard>}
+        />
         <Route
           path="/admin"
           element={
