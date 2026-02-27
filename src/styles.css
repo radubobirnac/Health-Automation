@@ -1272,6 +1272,131 @@ body {
   box-shadow: 0 0 0 2px rgba(15, 23, 42, 0.06);
 }
 
+/* ── Shift type colour classes (light + dark) ─────────────────────────── */
+/* Variables consumed by .shift-cell and .shift-select above               */
+
+.shift-type-LD {
+  --shift-bg: #FEF3C7; --shift-text: #78350F;
+  --shift-border: #FCD34D; --shift-hover: #FDE68A;
+  --shift-cell-bg: #FEF3C7; --shift-cell-hover: #FDE68A; --shift-border-strong: #FCD34D;
+}
+[data-theme="dark"] .shift-type-LD {
+  --shift-bg: #3D2800; --shift-text: #FDE68A;
+  --shift-border: #92400E; --shift-hover: #451A03;
+  --shift-cell-bg: #3D2800; --shift-cell-hover: #451A03; --shift-border-strong: #92400E;
+}
+
+.shift-type-E {
+  --shift-bg: #E0F2FE; --shift-text: #0C4A6E;
+  --shift-border: #7DD3FC; --shift-hover: #BAE6FD;
+  --shift-cell-bg: #E0F2FE; --shift-cell-hover: #BAE6FD; --shift-border-strong: #7DD3FC;
+}
+[data-theme="dark"] .shift-type-E {
+  --shift-bg: #0C2D3F; --shift-text: #BAE6FD;
+  --shift-border: #0369A1; --shift-hover: #0A1F2E;
+  --shift-cell-bg: #0C2D3F; --shift-cell-hover: #0A1F2E; --shift-border-strong: #0369A1;
+}
+
+.shift-type-N {
+  --shift-bg: #EEF2FF; --shift-text: #1E1B4B;
+  --shift-border: #A5B4FC; --shift-hover: #C7D2FE;
+  --shift-cell-bg: #EEF2FF; --shift-cell-hover: #C7D2FE; --shift-border-strong: #A5B4FC;
+}
+[data-theme="dark"] .shift-type-N {
+  --shift-bg: #1E1B3A; --shift-text: #C7D2FE;
+  --shift-border: #4338CA; --shift-hover: #16143A;
+  --shift-cell-bg: #1E1B3A; --shift-cell-hover: #16143A; --shift-border-strong: #4338CA;
+}
+
+.shift-type-AE {
+  --shift-bg: #F5F3FF; --shift-text: #3B0764;
+  --shift-border: #C4B5FD; --shift-hover: #DDD6FE;
+  --shift-cell-bg: #F5F3FF; --shift-cell-hover: #DDD6FE; --shift-border-strong: #C4B5FD;
+}
+[data-theme="dark"] .shift-type-AE {
+  --shift-bg: #2D1B4E; --shift-text: #DDD6FE;
+  --shift-border: #7C3AED; --shift-hover: #1E1035;
+  --shift-cell-bg: #2D1B4E; --shift-cell-hover: #1E1035; --shift-border-strong: #7C3AED;
+}
+
+.shift-type-BANK {
+  --shift-bg: #DCFCE7; --shift-text: #14532D;
+  --shift-border: #86EFAC; --shift-hover: #BBF7D0;
+  --shift-cell-bg: #DCFCE7; --shift-cell-hover: #BBF7D0; --shift-border-strong: #86EFAC;
+}
+[data-theme="dark"] .shift-type-BANK {
+  --shift-bg: #0F2E1A; --shift-text: #BBF7D0;
+  --shift-border: #16A34A; --shift-hover: #052E16;
+  --shift-cell-bg: #0F2E1A; --shift-cell-hover: #052E16; --shift-border-strong: #16A34A;
+}
+
+/* Pool colours for custom/dynamic shift types (0–5) */
+.shift-pool-0 {
+  --shift-bg: #FFF7ED; --shift-text: #7C2D12;
+  --shift-border: #FED7AA; --shift-hover: #FFEDD5;
+  --shift-cell-bg: #FFF7ED; --shift-cell-hover: #FFEDD5; --shift-border-strong: #FED7AA;
+}
+[data-theme="dark"] .shift-pool-0 {
+  --shift-bg: #3C1910; --shift-text: #FED7AA;
+  --shift-border: #9A3412; --shift-hover: #2C1008;
+  --shift-cell-bg: #3C1910; --shift-cell-hover: #2C1008; --shift-border-strong: #9A3412;
+}
+
+.shift-pool-1 {
+  --shift-bg: #F0FDF4; --shift-text: #14532D;
+  --shift-border: #86EFAC; --shift-hover: #DCFCE7;
+  --shift-cell-bg: #F0FDF4; --shift-cell-hover: #DCFCE7; --shift-border-strong: #86EFAC;
+}
+[data-theme="dark"] .shift-pool-1 {
+  --shift-bg: #052E16; --shift-text: #86EFAC;
+  --shift-border: #16A34A; --shift-hover: #03200E;
+  --shift-cell-bg: #052E16; --shift-cell-hover: #03200E; --shift-border-strong: #16A34A;
+}
+
+.shift-pool-2 {
+  --shift-bg: #FFF1F2; --shift-text: #881337;
+  --shift-border: #FDA4AF; --shift-hover: #FFE4E6;
+  --shift-cell-bg: #FFF1F2; --shift-cell-hover: #FFE4E6; --shift-border-strong: #FDA4AF;
+}
+[data-theme="dark"] .shift-pool-2 {
+  --shift-bg: #3B0919; --shift-text: #FDA4AF;
+  --shift-border: #BE123C; --shift-hover: #290613;
+  --shift-cell-bg: #3B0919; --shift-cell-hover: #290613; --shift-border-strong: #BE123C;
+}
+
+.shift-pool-3 {
+  --shift-bg: #F0F9FF; --shift-text: #0C4A6E;
+  --shift-border: #7DD3FC; --shift-hover: #E0F2FE;
+  --shift-cell-bg: #F0F9FF; --shift-cell-hover: #E0F2FE; --shift-border-strong: #7DD3FC;
+}
+[data-theme="dark"] .shift-pool-3 {
+  --shift-bg: #082F49; --shift-text: #7DD3FC;
+  --shift-border: #0284C7; --shift-hover: #062133;
+  --shift-cell-bg: #082F49; --shift-cell-hover: #062133; --shift-border-strong: #0284C7;
+}
+
+.shift-pool-4 {
+  --shift-bg: #FEFCE8; --shift-text: #713F12;
+  --shift-border: #FDE68A; --shift-hover: #FEF9C3;
+  --shift-cell-bg: #FEFCE8; --shift-cell-hover: #FEF9C3; --shift-border-strong: #FDE68A;
+}
+[data-theme="dark"] .shift-pool-4 {
+  --shift-bg: #2D1E00; --shift-text: #FDE68A;
+  --shift-border: #854D0E; --shift-hover: #1E1400;
+  --shift-cell-bg: #2D1E00; --shift-cell-hover: #1E1400; --shift-border-strong: #854D0E;
+}
+
+.shift-pool-5 {
+  --shift-bg: #FDF4FF; --shift-text: #581C87;
+  --shift-border: #E9D5FF; --shift-hover: #F3E8FF;
+  --shift-cell-bg: #FDF4FF; --shift-cell-hover: #F3E8FF; --shift-border-strong: #E9D5FF;
+}
+[data-theme="dark"] .shift-pool-5 {
+  --shift-bg: #3B0764; --shift-text: #E9D5FF;
+  --shift-border: #7E22CE; --shift-hover: #2D0552;
+  --shift-cell-bg: #3B0764; --shift-cell-hover: #2D0552; --shift-border-strong: #7E22CE;
+}
+
 .row-selected td {
   background: var(--green-100);
 }

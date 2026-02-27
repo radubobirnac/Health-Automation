@@ -1,5 +1,24 @@
 import { useMemo } from "react";
-import { getShiftColor } from "../utils/shiftColors.js";
+
+const KNOWN_SHIFT_CLASSES = { LD: "shift-type-LD", E: "shift-type-E", N: "shift-type-N", AE: "shift-type-AE" };
+const POOL_SIZE = 6;
+
+const nameHash = (str) => {
+  let h = 0;
+  for (let i = 0; i < str.length; i++) {
+    h = (h * 31 + str.charCodeAt(i)) & 0xffff;
+  }
+  return h;
+};
+
+const getShiftClass = (shiftType) => {
+  if (!shiftType) return "";
+  const normalized = shiftType.trim().toUpperCase();
+  const base = normalized.split(/[\s-]/)[0];
+  if (base.startsWith("B")) return "shift-type-BANK";
+  if (KNOWN_SHIFT_CLASSES[base]) return KNOWN_SHIFT_CLASSES[base];
+  return `shift-pool-${nameHash(base) % POOL_SIZE}`;
+};
 
 const LEFT_COLUMNS = [
   { key: "locum_name", label: "Locum Name", className: "col-locum" },
@@ -308,13 +327,12 @@ export default function SchedulerGrid({
                       {dateKeys.map((dateKey) => {
                         const cellKey = `${nurse.id}_${dateKey}`;
                         const shiftValue = shifts[cellKey] || "";
-                        const shiftStyle = getShiftColor(shiftValue);
+                        const shiftClass = getShiftClass(shiftValue);
 
                         return (
                           <td
                             key={cellKey}
-                            className="date-col shift-cell"
-                            style={shiftStyle}
+                            className={`date-col shift-cell${shiftClass ? ` ${shiftClass}` : ""}`}
                             onPaste={(event) => {
                               const pasteText = event.clipboardData.getData("text");
                               if (pasteText.includes("\n") || pasteText.includes("\t")) {
