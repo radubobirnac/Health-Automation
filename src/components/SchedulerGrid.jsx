@@ -1,24 +1,5 @@
 import { useMemo } from "react";
-
-const KNOWN_SHIFT_CLASSES = { LD: "shift-type-LD", E: "shift-type-E", N: "shift-type-N", AE: "shift-type-AE" };
-const POOL_SIZE = 6;
-
-const nameHash = (str) => {
-  let h = 0;
-  for (let i = 0; i < str.length; i++) {
-    h = (h * 31 + str.charCodeAt(i)) & 0xffff;
-  }
-  return h;
-};
-
-const getShiftClass = (shiftType) => {
-  if (!shiftType) return "";
-  const normalized = shiftType.trim().toUpperCase();
-  const base = normalized.split(/[\s-]/)[0];
-  if (base.startsWith("B")) return "shift-type-BANK";
-  if (KNOWN_SHIFT_CLASSES[base]) return KNOWN_SHIFT_CLASSES[base];
-  return `shift-pool-${nameHash(base) % POOL_SIZE}`;
-};
+import { getShiftClass } from "../utils/shiftClass.js";
 
 const LEFT_COLUMNS = [
   { key: "locum_name", label: "Locum Name", className: "col-locum" },
@@ -35,6 +16,7 @@ const formatDateLabel = (date) =>
 
 const formatWeekday = (date) =>
   date.toLocaleDateString("en-GB", { weekday: "short" }).toUpperCase();
+
 
 export default function SchedulerGrid({
   nurses,
@@ -255,7 +237,7 @@ export default function SchedulerGrid({
             <table className="scheduler-table scheduler-table-fixed">
               <thead>
                 <tr>
-                  <th className="col-select header-cell header-placeholder" aria-hidden="true" />
+                  <th className="col-select header-cell" aria-hidden="true" />
                   {LEFT_COLUMNS.map((col) => (
                     <th key={col.key} className={`${col.className} header-cell`}>
                       {col.label}
@@ -308,7 +290,12 @@ export default function SchedulerGrid({
               <thead>
                 <tr>
                   {dates.map((date) => (
-                    <th key={`date-${date.toISOString()}`} className="date-col header-cell">
+                    <th
+                      key={`date-${date.toISOString()}`}
+                      className={`date-col header-cell${
+                        date.getDay() === 0 || date.getDay() === 6 ? " weekend-col" : ""
+                      }`}
+                    >
                       <div className="date-header-stack">
                         <span className="weekday-header">{formatWeekday(date)}</span>
                         <span className="date-header">{formatDateLabel(date)}</span>
@@ -324,15 +311,19 @@ export default function SchedulerGrid({
                     : undefined;
                   return (
                     <tr key={`${nurse.id}-dates`} className={rowClass}>
-                      {dateKeys.map((dateKey) => {
+                      {dateKeys.map((dateKey, dateIndex) => {
                         const cellKey = `${nurse.id}_${dateKey}`;
                         const shiftValue = shifts[cellKey] || "";
                         const shiftClass = getShiftClass(shiftValue);
+                        const isWeekend =
+                          dates[dateIndex]?.getDay?.() === 0 || dates[dateIndex]?.getDay?.() === 6;
 
                         return (
                           <td
                             key={cellKey}
-                            className={`date-col shift-cell${shiftClass ? ` ${shiftClass}` : ""}`}
+                            className={`date-col shift-cell${shiftClass ? ` ${shiftClass}` : ""}${
+                              isWeekend ? " weekend-col" : ""
+                            }`}
                             onPaste={(event) => {
                               const pasteText = event.clipboardData.getData("text");
                               if (pasteText.includes("\n") || pasteText.includes("\t")) {

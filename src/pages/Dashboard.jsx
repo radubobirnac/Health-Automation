@@ -4,6 +4,7 @@ import SchedulerGrid from "../components/SchedulerGrid.jsx";
 import SheetGrid from "../components/SheetGrid.jsx";
 import ShiftTypeManager from "../components/ShiftTypeManager.jsx";
 import { authedFetch } from "../utils/api.js";
+import { getShiftClass } from "../utils/shiftClass.js";
 const LOG_COLUMNS = ["Column A", "Column B", "Column C", "Column D", "Column E", "Column F"];
 
 const buildDateRange = (start, end) => {
@@ -58,10 +59,12 @@ export default function Dashboard() {
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [shiftTypes, setShiftTypes] = useState(["LD", "E", "N", "AE"]);
   const [showShiftManager, setShowShiftManager] = useState(false);
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
   const sheetCacheRef = useRef(new Map());
   const lastLocalUpdateRef = useRef({});
   const lastServerSyncRef = useRef({});
   const dataSheetIdRef = useRef(null);
+  const menuRef = useRef(null);
   const [startDate, setStartDate] = useState(() => {
     const today = new Date();
     return toInputDate(today);
@@ -72,9 +75,9 @@ export default function Dashboard() {
     return toInputDate(future);
   });
   const [userId, setUserId] = useState("");
-  const [isAdmin, setIsAdmin] = useState(false);
   const [authChecked, setAuthChecked] = useState(false);
   const navigate = useNavigate();
+
 
   const markLocalUpdate = () => {
     if (!activeSheetId) return;
@@ -100,7 +103,6 @@ export default function Dashboard() {
         const payload = await response.json();
         if (!isActive) return;
         setUserId(payload?.user_id || "");
-        setIsAdmin(payload?.role === "admin");
         localStorage.setItem(
           "hr_auth",
           JSON.stringify({ username: payload?.username, role: payload?.role })
@@ -109,7 +111,6 @@ export default function Dashboard() {
       } catch (error) {
         if (!isActive) return;
         setUserId("");
-        setIsAdmin(false);
         localStorage.removeItem("hr_auth");
         localStorage.removeItem("hr_token");
         navigate("/login");
@@ -241,6 +242,19 @@ export default function Dashboard() {
   useEffect(() => {
     setSelectedRowIds([]);
   }, [activeSheetId]);
+
+  useEffect(() => {
+    if (!isMenuOpen) return;
+    const handleClick = (event) => {
+      if (menuRef.current && !menuRef.current.contains(event.target)) {
+        setIsMenuOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClick);
+    return () => {
+      document.removeEventListener("mousedown", handleClick);
+    };
+  }, [isMenuOpen]);
 
   useEffect(() => {
     const sheetId = dataSheetIdRef.current;
@@ -559,34 +573,53 @@ export default function Dashboard() {
 
   return (
     <>
-      <section className="dashboard-hero">
-        <div className="container dashboard-header dashboard-container">
-          <div>
-            <span className="eyebrow">Client Workspace</span>
-            <h1>Shift Monitoring Sheets</h1>
-            <p className="lead">Schedule matrix with real-time updates.</p>
-          </div>
-          <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
-            {status.message && <div className="status-pill">{status.message}</div>}
-            <button
-              className="btn btn-outline"
-              type="button"
-              onClick={() => navigate("/portal-data")}
-            >
-              Portal Data
-            </button>
-            {isAdmin && (
-              <button className="btn btn-outline" type="button" onClick={() => navigate("/admin")}>
-                Admin
-              </button>
-            )}
+      <section className="dashboard-hero dashboard-hero--minimal">
+        <div className="container dashboard-container">
+          <div className="page-header-grid minimal">
+            <div className="page-header-copy">
+              <div className="page-title">Shift Monitoring</div>
+              <div className="page-subtitle">Royal Survey</div>
+              <p className="page-desc">Manage weekly shift assignments.</p>
+            </div>
+            <div className="page-header-actions compact">
+              <div className="date-range">
+                <label className="date-label">Start Date</label>
+                <input
+                  type="date"
+                  value={startDate}
+                  onChange={(event) => setStartDate(event.target.value)}
+                />
+              </div>
+              <div className="date-range">
+                <label className="date-label">End Date</label>
+                <input
+                  type="date"
+                  value={endDate}
+                  onChange={(event) => setEndDate(event.target.value)}
+                />
+              </div>
+              <div className="header-action-btns">
+                {status.message && (
+                  <span className="status-pill">{status.message}</span>
+                )}
+                <button className="btn btn-outline btn-sm" type="button" disabled>
+                  Filter
+                </button>
+                <button className="btn btn-outline btn-sm" type="button" disabled>
+                  Bulk edit
+                </button>
+                <button className="btn btn-primary btn-sm" type="button" disabled>
+                  Auto assign
+                </button>
+              </div>
+            </div>
           </div>
         </div>
       </section>
 
       <section className="section dashboard-section">
         <div className="container dashboard-container">
-          <div className="sheet-tabs">
+          <div className="sheet-tabs sheet-tabs--minimal">
             {sheets.map((sheet) => (
               <button
                 key={sheet.sheet_id}
@@ -602,88 +635,77 @@ export default function Dashboard() {
                 {sheet.name}
               </button>
             ))}
-            <button
-              className="sheet-tab"
-              type="button"
-              disabled={isLogsSheet}
-              onClick={handleDuplicateSheet}
-            >
-              Duplicate
-            </button>
-            <button
-              className="sheet-tab"
-              type="button"
-              style={{ color: "#dc3545" }}
-              disabled={isLogsSheet}
-              onClick={() => setShowDeleteConfirm(true)}
-            >
-              Delete Sheet
-            </button>
           </div>
+
+          <div className="action-bar minimal">
+            <div className="action-bar-right">
+              {!isLogsSheet && (
+                <button
+                  className="btn btn-outline btn-sm"
+                  type="button"
+                  onClick={() => setShowShiftManager(true)}
+                >
+                  Edit Shift Types
+                </button>
+              )}
+              <button
+                className="btn btn-outline btn-sm"
+                type="button"
+                disabled={isLogsSheet}
+                onClick={handleDuplicateSheet}
+              >
+                Duplicate Sheet
+              </button>
+              <div className="menu-wrap" ref={menuRef}>
+                <button
+                  className="btn btn-outline btn-sm ellipsis-btn"
+                  type="button"
+                  aria-haspopup="true"
+                  aria-expanded={isMenuOpen}
+                  aria-label="More options"
+                  onClick={() => setIsMenuOpen((prev) => !prev)}
+                >
+                  •••
+                </button>
+                {isMenuOpen && (
+                  <div className="menu-card" role="menu">
+                    <button
+                      type="button"
+                      className="menu-item"
+                      onClick={() => setIsMenuOpen(false)}
+                    >
+                      Archive Sheet
+                    </button>
+                    <button
+                      type="button"
+                      className="menu-item menu-item--danger"
+                      disabled={isLogsSheet}
+                      onClick={() => {
+                        setIsMenuOpen(false);
+                        setShowDeleteConfirm(true);
+                      }}
+                    >
+                      Delete Sheet
+                    </button>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+
+          {!isLogsSheet && shiftTypes.length > 0 && (
+            <div className="shift-legend">
+              <span className="shift-legend-label">Shift Legend</span>
+              {shiftTypes.map((type) => (
+                <span key={type} className={`shift-legend-chip ${getShiftClass(type)}`}>
+                  {type}
+                </span>
+              ))}
+            </div>
+          )}
 
           <div className="dashboard-grid">
             <div>
-              <div className="sheet-controls">
-                <div className="sheet-field">
-                  <label>Sheet name</label>
-                  <input
-                    type="text"
-                    value={sheetName}
-                    onChange={(event) => setSheetName(event.target.value)}
-                    onBlur={(event) => handleRename(event.target.value)}
-                    onKeyDown={(event) => {
-                      if (event.key === "Enter") {
-                        event.preventDefault();
-                        handleRename(event.target.value);
-                      }
-                    }}
-                  />
-                </div>
-                <div className="sheet-field sheet-field-compact">
-                  <label>Start date</label>
-                  <input
-                    type="date"
-                    value={startDate}
-                    onChange={(event) => setStartDate(event.target.value)}
-                  />
-                </div>
-                <div className="sheet-field sheet-field-compact">
-                  <label>End date</label>
-                  <input
-                    type="date"
-                    value={endDate}
-                    onChange={(event) => setEndDate(event.target.value)}
-                  />
-                </div>
-              </div>
-              <div className="sheet-actions-row">
-                <button
-                  className="btn btn-outline"
-                  type="button"
-                  onClick={isLogsSheet ? handleLogsAddRow : handleAddRow}
-                >
-                  Add row
-                </button>
-                {!isLogsSheet && (
-                  <>
-                    <button
-                      className="btn btn-outline"
-                      type="button"
-                      onClick={() => setShowShiftManager(true)}
-                    >
-                      Edit shift types
-                    </button>
-                    <button
-                      className="btn btn-danger"
-                      type="button"
-                      disabled={!selectedRowIds.length}
-                      onClick={handleDeleteSelectedRows}
-                    >
-                      Delete Selected Rows
-                    </button>
-                  </>
-                )}
-              </div>
               {isLogsSheet ? (
                 <SheetGrid
                   columns={LOG_COLUMNS}

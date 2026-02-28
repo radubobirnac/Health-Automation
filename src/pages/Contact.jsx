@@ -6,6 +6,7 @@ import {
 } from "../content/socialProof.js";
 import { globalCaveats } from "../content/securityTrust.js";
 import { Link } from "react-router-dom";
+import useScrollReveal from "../utils/useScrollReveal.js";
 
 const initialState = {
   fullName: "",
@@ -15,6 +16,8 @@ const initialState = {
 };
 
 export default function Contact() {
+  useScrollReveal();
+
   const [formState, setFormState] = useState(initialState);
   const [status, setStatus] = useState({ state: "idle", message: "" });
 
@@ -57,7 +60,7 @@ export default function Contact() {
   return (
     <>
       <section className="page-hero">
-        <div className="container">
+        <div className="container" data-reveal>
           <span className="eyebrow">Contact</span>
           <h1>Book a free demo</h1>
           <p className="lead">
@@ -68,7 +71,7 @@ export default function Contact() {
 
       <section className="section">
         <div className="container contact-grid">
-          <form className="contact-form" onSubmit={handleSubmit}>
+          <form className="contact-form" onSubmit={handleSubmit} data-reveal>
             <label>
               Full Name
               <input
@@ -126,7 +129,7 @@ export default function Contact() {
               </p>
             )}
           </form>
-          <div className="contact-card">
+          <div className="contact-card" data-reveal style={{ "--reveal-delay": "140ms" }}>
             <h2>Contact Details</h2>
             <div className="contact-security-reassurance">
               <h3>Credential Security Guidance</h3>

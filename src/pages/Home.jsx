@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Link } from "react-router-dom";
 import { socialProof, trustRowHospitalStat } from "../content/socialProof.js";
 import { globalCaveats, homepageSecurityBlocks, step1Callout } from "../content/securityTrust.js";
+import useScrollReveal from "../utils/useScrollReveal.js";
 
 const initialHeroState = {
   workEmail: "",
@@ -148,6 +149,7 @@ const STATS = [
 export default function Home() {
   const [heroFormState, setHeroFormState] = useState(initialHeroState);
   const [heroStatus, setHeroStatus] = useState({ state: "idle", message: "" });
+  useScrollReveal();
 
   const handleHeroChange = (event) => {
     const { name, value } = event.target;
@@ -185,7 +187,7 @@ export default function Home() {
       {/* ── HERO ───────────────────────────────────────────────────── */}
       <section className="hero">
         <div className="container hero-grid">
-          <div className="hero-copy">
+          <div className="hero-copy" data-reveal>
             <span className="eyebrow">Built for NHS Trust nurses</span>
             <h1>Automated Shift Booking for NHS Nurses</h1>
             <p className="lead">
@@ -222,7 +224,7 @@ export default function Home() {
             </div>
           </div>
 
-          <div className="hero-form-panel">
+          <div className="hero-form-panel" data-reveal style={{ "--reveal-delay": "120ms" }}>
             <form className="hero-form-card" onSubmit={handleHeroSubmit}>
               <h3>Get Your Free Demo</h3>
               <label>
@@ -272,12 +274,12 @@ export default function Home() {
       {/* ── HOW IT WORKS ───────────────────────────────────────────── */}
       <section id="how-it-works" className="section">
         <div className="container">
-          <div className="section-header">
+          <div className="section-header" data-reveal>
             <h2>How It Works</h2>
             <p>Clear, compliant, and built around the HealthRoster workflow.</p>
           </div>
           <div className="steps-grid">
-            <div className="step-card">
+            <div className="step-card" data-reveal style={{ "--reveal-delay": "80ms" }}>
               <div className="step-index">1</div>
               <h3>Share your preferences</h3>
               <p>You provide login credentials, grade, and preferred shift type.</p>
@@ -295,17 +297,17 @@ export default function Home() {
                 </Link>
               </details>
             </div>
-            <div className="step-card">
+            <div className="step-card" data-reveal style={{ "--reveal-delay": "140ms" }}>
               <div className="step-index">2</div>
               <h3>We configure automation</h3>
               <p>We set up the booking logic based on your requirements.</p>
             </div>
-            <div className="step-card">
+            <div className="step-card" data-reveal style={{ "--reveal-delay": "200ms" }}>
               <div className="step-index">3</div>
               <h3>We monitor shifts</h3>
               <p>Our system watches for matching shifts as they appear.</p>
             </div>
-            <div className="step-card">
+            <div className="step-card" data-reveal style={{ "--reveal-delay": "260ms" }}>
               <div className="step-index">4</div>
               <h3>Shifts get booked</h3>
               <p>Eligible shifts are booked automatically in real time.</p>
@@ -317,14 +319,14 @@ export default function Home() {
       {/* ── DEMO VIDEO ─────────────────────────────────────────────── */}
       <section className="section demo-section">
         <div className="container demo-grid">
-          <div className="demo-copy">
+          <div className="demo-copy" data-reveal>
             <h2>See Our Automation in Action</h2>
             <p>
               Watch how we monitor HealthRoster, match shifts to your grade and shift type,
               and book instantly so you never lose opportunities to manual refresh.
             </p>
           </div>
-          <div className="demo-video">
+          <div className="demo-video" data-reveal style={{ "--reveal-delay": "120ms" }}>
             <div className="video-placeholder" role="img" aria-label="Demo video coming soon">
               <div className="video-placeholder-inner">
                 <div className="video-play-btn" aria-hidden="true">
@@ -342,13 +344,18 @@ export default function Home() {
       {/* ── FEATURE CARDS (Benefits) ───────────────────────────────── */}
       <section className="section benefits-section">
         <div className="container">
-          <div className="section-header">
+          <div className="section-header" data-reveal>
             <h2>Why nurses choose us</h2>
             <p>Automation that protects your time and delivers measurable results.</p>
           </div>
           <div className="benefits-grid">
-            {FEATURES.map((feature) => (
-              <div key={feature.title} className="feature-card">
+            {FEATURES.map((feature, index) => (
+              <div
+                key={feature.title}
+                className="feature-card"
+                data-reveal
+                style={{ "--reveal-delay": `${80 + index * 70}ms` }}
+              >
                 <div className="feature-card-icon">{feature.icon}</div>
                 <h3>{feature.title}</h3>
                 <p>{feature.desc}</p>
@@ -365,8 +372,12 @@ export default function Home() {
       <section className="stats-strip-section" aria-label="Service statistics">
         <div className="container">
           <div className="stats-grid">
-            {STATS.map((stat) => (
-              <div key={stat.value}>
+            {STATS.map((stat, index) => (
+              <div
+                key={stat.value}
+                data-reveal="fade"
+                style={{ "--reveal-delay": `${80 + index * 60}ms` }}
+              >
                 <div className="stat-value">{stat.value}</div>
                 <div className="stat-label">{stat.label}</div>
               </div>
@@ -378,13 +389,19 @@ export default function Home() {
       {/* ── WHO IT'S FOR (Roles) ───────────────────────────────────── */}
       <section className="section roles-section">
         <div className="container">
-          <div className="section-header">
+          <div className="section-header" data-reveal>
             <h2>Built for your role</h2>
             <p>Different NHS workflows, one automation platform.</p>
           </div>
           <div className="roles-grid">
-            {ROLES.map((role) => (
-              <Link key={role.title} className="role-card" to={role.href}>
+            {ROLES.map((role, index) => (
+              <Link
+                key={role.title}
+                className="role-card"
+                to={role.href}
+                data-reveal
+                style={{ "--reveal-delay": `${70 + index * 70}ms` }}
+              >
                 <div className="role-card-icon">{role.icon}</div>
                 <div className="role-card-title">{role.title}</div>
                 <div className="role-card-desc">{role.desc}</div>
@@ -398,22 +415,29 @@ export default function Home() {
       {/* ── CREDENTIAL SECURITY ────────────────────────────────────── */}
       <section className="section homepage-security-section">
         <div className="container">
-          <div className="section-header">
+          <div className="section-header" data-reveal>
             <h2>How we protect your credentials</h2>
             <p>
               Practical safeguards, continuous hardening, and full transparency on our roadmap.
             </p>
           </div>
           <div className="homepage-security-grid">
-            {homepageSecurityBlocks.map((block) => (
-              <article key={block.title} className="homepage-security-card">
+            {homepageSecurityBlocks.map((block, index) => (
+              <article
+                key={block.title}
+                className="homepage-security-card"
+                data-reveal
+                style={{ "--reveal-delay": `${80 + index * 70}ms` }}
+              >
                 <h3>{block.title}</h3>
                 <p>{block.body}</p>
               </article>
             ))}
           </div>
-          <p className="homepage-security-caveat">{globalCaveats.nhsPolicyNote}</p>
-          <Link className="step-security-link" to="/security">
+          <p className="homepage-security-caveat" data-reveal style={{ "--reveal-delay": "240ms" }}>
+            {globalCaveats.nhsPolicyNote}
+          </p>
+          <Link className="step-security-link" to="/security" data-reveal style={{ "--reveal-delay": "300ms" }}>
             Full security details &rarr;
           </Link>
         </div>
@@ -422,11 +446,11 @@ export default function Home() {
       {/* ── TESTIMONIAL ────────────────────────────────────────────── */}
       <section className="section testimonial-section">
         <div className="container">
-          <div className="section-header">
+          <div className="section-header" data-reveal>
             <h2>What nurses say</h2>
             <p>Trusted by NHS nurses across the UK.</p>
           </div>
-          <div className="testimonial-card">
+          <div className="testimonial-card" data-reveal style={{ "--reveal-delay": "120ms" }}>
             <div className="testimonial-quote-mark" aria-hidden="true">&ldquo;</div>
             <p className="testimonial-quote">
               I used to spend 30 minutes every morning refreshing HealthRoster. Now I get a
@@ -443,7 +467,7 @@ export default function Home() {
 
       {/* ── FINAL CTA ──────────────────────────────────────────────── */}
       <section className="cta-section">
-        <div className="container cta-card">
+        <div className="container cta-card" data-reveal>
           <div>
             <h2>Start Booking Smarter</h2>
             <p>Get set up in 48 hours and let automation do the work for you.</p>

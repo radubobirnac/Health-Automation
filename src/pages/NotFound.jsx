@@ -1,9 +1,12 @@
 import { Link } from "react-router-dom";
+import useScrollReveal from "../utils/useScrollReveal.js";
 
 export default function NotFound() {
+  useScrollReveal();
+
   return (
     <section className="page-hero not-found-section">
-      <div className="container not-found-container">
+      <div className="container not-found-container" data-reveal>
         <div className="not-found-code" aria-hidden="true">404</div>
         <span className="eyebrow">Page Not Found</span>
         <h1>This page doesn&apos;t exist</h1>

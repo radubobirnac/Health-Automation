@@ -5,7 +5,7 @@ const THEME_STORAGE_KEY = "hr_theme";
 
 const getInitialTheme = () => {
   const stored = localStorage.getItem(THEME_STORAGE_KEY);
-  return stored === "light" || stored === "dark" ? stored : "dark";
+  return stored === "light" || stored === "dark" ? stored : "light";
 };
 
 export default function Layout({ children }) {
@@ -14,6 +14,7 @@ export default function Layout({ children }) {
   const navigate = useNavigate();
   const location = useLocation();
   const isAuthed = useMemo(() => Boolean(localStorage.getItem("hr_token")), [location.pathname]);
+  const isAppRoute = location.pathname.startsWith("/app");
 
   useEffect(() => {
     const root = document.documentElement;
@@ -53,61 +54,102 @@ export default function Layout({ children }) {
   return (
     <>
       <a className="skip-link" href="#main-content">Skip to main content</a>
-      <header className="site-header">
+      <header className={`site-header${isAppRoute ? " site-header--app" : ""}`}>
         <div className="container nav-wrap">
-          <div className="brand">
+          <Link className="brand" to={isAppRoute ? "/app" : "/"} aria-label="Health Roster Automation — go to dashboard">
             <div className="logo">HR</div>
             <div>
               <div className="brand-title">Health Roster Automation</div>
               <div className="brand-sub">NHS Shift Booking</div>
             </div>
-          </div>
+          </Link>
           <nav className="nav" aria-label="Main">
-            <Link to="/" className={location.pathname === "/" ? "nav-active" : ""} aria-current={location.pathname === "/" ? "page" : undefined}>Home</Link>
-            <Link to="/about" className={location.pathname === "/about" ? "nav-active" : ""} aria-current={location.pathname === "/about" ? "page" : undefined}>About</Link>
-            <Link to="/contact" className={location.pathname === "/contact" ? "nav-active" : ""} aria-current={location.pathname === "/contact" ? "page" : undefined}>Contact</Link>
-            <Link to="/security" className={location.pathname === "/security" ? "nav-active" : ""} aria-current={location.pathname === "/security" ? "page" : undefined}>Security</Link>
-            {isAuthed && (
-              <Link to="/portal-data" className={location.pathname === "/portal-data" ? "nav-active" : ""} aria-current={location.pathname === "/portal-data" ? "page" : undefined}>Portal Data</Link>
+            {isAppRoute ? (
+              <>
+                <Link to="/app" className={location.pathname === "/app" ? "nav-active" : ""} aria-current={location.pathname === "/app" ? "page" : undefined}>Dashboard</Link>
+                {isAuthed && (
+                  <Link to="/portal-data" className={location.pathname === "/portal-data" ? "nav-active" : ""} aria-current={location.pathname === "/portal-data" ? "page" : undefined}>Portal Data</Link>
+                )}
+              </>
+            ) : (
+              <>
+                <Link to="/" className={location.pathname === "/" ? "nav-active" : ""} aria-current={location.pathname === "/" ? "page" : undefined}>Home</Link>
+                <Link to="/about" className={location.pathname === "/about" ? "nav-active" : ""} aria-current={location.pathname === "/about" ? "page" : undefined}>About</Link>
+                <Link to="/contact" className={location.pathname === "/contact" ? "nav-active" : ""} aria-current={location.pathname === "/contact" ? "page" : undefined}>Contact</Link>
+                <Link to="/security" className={location.pathname === "/security" ? "nav-active" : ""} aria-current={location.pathname === "/security" ? "page" : undefined}>Security</Link>
+                {isAuthed && (
+                  <Link to="/portal-data" className={location.pathname === "/portal-data" ? "nav-active" : ""} aria-current={location.pathname === "/portal-data" ? "page" : undefined}>Portal Data</Link>
+                )}
+                <Link to="/login" className={location.pathname === "/login" ? "nav-active" : ""} aria-current={location.pathname === "/login" ? "page" : undefined}>Client Portal</Link>
+              </>
             )}
-            <Link to="/login" className={location.pathname === "/login" ? "nav-active" : ""} aria-current={location.pathname === "/login" ? "page" : undefined}>Client Portal</Link>
           </nav>
           <div className="nav-actions" aria-label="Actions">
-            <Link className="btn btn-outline" to="/contact">
-              Book a Free Demo
-            </Link>
-            <button
-              className="btn btn-outline theme-toggle"
-              type="button"
-              aria-label={theme === "dark" ? "Switch to light mode" : "Switch to dark mode"}
-              onClick={() => setTheme((prev) => (prev === "dark" ? "light" : "dark"))}
-            >
-              {theme === "dark" ? (
-                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                  <circle cx="12" cy="12" r="5"/>
-                  <line x1="12" y1="1" x2="12" y2="3"/>
-                  <line x1="12" y1="21" x2="12" y2="23"/>
-                  <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/>
-                  <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/>
-                  <line x1="1" y1="12" x2="3" y2="12"/>
-                  <line x1="21" y1="12" x2="23" y2="12"/>
-                  <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/>
-                  <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/>
-                </svg>
-              ) : (
-                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                  <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
-                </svg>
-              )}
-            </button>
-            {isAuthed ? (
-              <button className="btn btn-primary" type="button" onClick={handleSignOff}>
-                Sign-Off
-              </button>
+            {isAppRoute ? (
+              <>
+                <button
+                  className="icon-btn"
+                  type="button"
+                  aria-label={theme === "dark" ? "Switch to light mode" : "Switch to dark mode"}
+                  onClick={() => setTheme((prev) => (prev === "dark" ? "light" : "dark"))}
+                >
+                  {theme === "dark" ? (
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                      <circle cx="12" cy="12" r="5"/>
+                      <line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/>
+                      <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/>
+                      <line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/>
+                      <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/>
+                    </svg>
+                  ) : (
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                      <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
+                    </svg>
+                  )}
+                </button>
+                <button className="btn-app-outline" type="button" onClick={handleSignOff}>
+                  Sign Off
+                </button>
+              </>
             ) : (
-              <Link className="btn btn-primary" to="/login">
-                Sign-In
-              </Link>
+              <>
+                <Link className="btn btn-outline" to="/contact">
+                  Book a Free Demo
+                </Link>
+                <button
+                  className="btn btn-outline theme-toggle"
+                  type="button"
+                  aria-label={theme === "dark" ? "Switch to light mode" : "Switch to dark mode"}
+                  onClick={() => setTheme((prev) => (prev === "dark" ? "light" : "dark"))}
+                >
+                  {theme === "dark" ? (
+                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                      <circle cx="12" cy="12" r="5"/>
+                      <line x1="12" y1="1" x2="12" y2="3"/>
+                      <line x1="12" y1="21" x2="12" y2="23"/>
+                      <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/>
+                      <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/>
+                      <line x1="1" y1="12" x2="3" y2="12"/>
+                      <line x1="21" y1="12" x2="23" y2="12"/>
+                      <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/>
+                      <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/>
+                    </svg>
+                  ) : (
+                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                      <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
+                    </svg>
+                  )}
+                </button>
+                {isAuthed ? (
+                  <button className="btn btn-primary" type="button" onClick={handleSignOff}>
+                    Sign-Off
+                  </button>
+                ) : (
+                  <Link className="btn btn-primary" to="/login">
+                    Sign-In
+                  </Link>
+                )}
+              </>
             )}
           </div>
           <button
@@ -145,34 +187,62 @@ export default function Layout({ children }) {
           </button>
         </div>
         <div className="mobile-nav-links">
-          <Link to="/" className={location.pathname === "/" ? "nav-active" : ""}>Home</Link>
-          <Link to="/about" className={location.pathname === "/about" ? "nav-active" : ""}>About</Link>
-          <Link to="/contact" className={location.pathname === "/contact" ? "nav-active" : ""}>Contact</Link>
-          <Link to="/security" className={location.pathname === "/security" ? "nav-active" : ""}>Security</Link>
-          {isAuthed && (
-            <Link to="/portal-data" className={location.pathname === "/portal-data" ? "nav-active" : ""}>Portal Data</Link>
+          {isAppRoute ? (
+            <>
+              <Link to="/app" className={location.pathname === "/app" ? "nav-active" : ""}>Dashboard</Link>
+              {isAuthed && (
+                <Link to="/portal-data" className={location.pathname === "/portal-data" ? "nav-active" : ""}>Portal Data</Link>
+              )}
+            </>
+          ) : (
+            <>
+              <Link to="/" className={location.pathname === "/" ? "nav-active" : ""}>Home</Link>
+              <Link to="/about" className={location.pathname === "/about" ? "nav-active" : ""}>About</Link>
+              <Link to="/contact" className={location.pathname === "/contact" ? "nav-active" : ""}>Contact</Link>
+              <Link to="/security" className={location.pathname === "/security" ? "nav-active" : ""}>Security</Link>
+              {isAuthed && (
+                <Link to="/portal-data" className={location.pathname === "/portal-data" ? "nav-active" : ""}>Portal Data</Link>
+              )}
+              <Link to="/login" className={location.pathname === "/login" ? "nav-active" : ""}>Client Portal</Link>
+            </>
           )}
-          <Link to="/login" className={location.pathname === "/login" ? "nav-active" : ""}>Client Portal</Link>
         </div>
         <div className="mobile-nav-actions">
-          <Link className="btn btn-outline" to="/contact">
-            Book a Free Demo
-          </Link>
-          <button
-            className="btn btn-outline"
-            type="button"
-            onClick={() => setTheme((prev) => (prev === "dark" ? "light" : "dark"))}
-          >
-            {theme === "dark" ? "Light Mode" : "Dark Mode"}
-          </button>
-          {isAuthed ? (
-            <button className="btn btn-primary" type="button" onClick={handleSignOff}>
-              Sign-Off
-            </button>
+          {isAppRoute ? (
+            <>
+              <button
+                className="btn btn-outline"
+                type="button"
+                onClick={() => setTheme((prev) => (prev === "dark" ? "light" : "dark"))}
+              >
+                {theme === "dark" ? "Light Mode" : "Dark Mode"}
+              </button>
+              <button className="btn btn-primary" type="button" onClick={handleSignOff}>
+                Sign Off
+              </button>
+            </>
           ) : (
-            <Link className="btn btn-primary" to="/login">
-              Sign-In
-            </Link>
+            <>
+              <Link className="btn btn-outline" to="/contact">
+                Book a Free Demo
+              </Link>
+              <button
+                className="btn btn-outline"
+                type="button"
+                onClick={() => setTheme((prev) => (prev === "dark" ? "light" : "dark"))}
+              >
+                {theme === "dark" ? "Light Mode" : "Dark Mode"}
+              </button>
+              {isAuthed ? (
+                <button className="btn btn-primary" type="button" onClick={handleSignOff}>
+                  Sign-Off
+                </button>
+              ) : (
+                <Link className="btn btn-primary" to="/login">
+                  Sign-In
+                </Link>
+              )}
+            </>
           )}
         </div>
       </nav>

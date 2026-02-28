@@ -1,5 +1,6 @@
 import { Link } from "react-router-dom";
 import { globalCaveats } from "../content/securityTrust.js";
+import useScrollReveal from "../utils/useScrollReveal.js";
 
 function IconTarget() {
   return (
@@ -67,11 +68,13 @@ const ABOUT_STATS = [
 ];
 
 export default function About() {
+  useScrollReveal();
+
   return (
     <>
       {/* ── PAGE HERO ──────────────────────────────────────────────── */}
       <section className="page-hero">
-        <div className="container">
+        <div className="container" data-reveal>
           <span className="eyebrow">About Us</span>
           <h1>Healthcare automation built for NHS nurses</h1>
           <p className="lead">
@@ -88,13 +91,18 @@ export default function About() {
       {/* ── VALUE BLOCKS ───────────────────────────────────────────── */}
       <section className="section">
         <div className="container">
-          <div className="section-header">
+          <div className="section-header" data-reveal>
             <h2>What we stand for</h2>
             <p>The principles that guide every product and security decision we make.</p>
           </div>
           <div className="value-blocks-grid">
-            {VALUE_BLOCKS.map((block) => (
-              <div key={block.title} className="value-block">
+            {VALUE_BLOCKS.map((block, index) => (
+              <div
+                key={block.title}
+                className="value-block"
+                data-reveal
+                style={{ "--reveal-delay": `${80 + index * 70}ms` }}
+              >
                 <div className="value-block-icon">{block.icon}</div>
                 <h3>{block.title}</h3>
                 <p>{block.body}</p>
@@ -108,8 +116,12 @@ export default function About() {
       <section className="stats-strip-section" aria-label="Service statistics">
         <div className="container">
           <div className="stats-grid">
-            {ABOUT_STATS.map((stat) => (
-              <div key={stat.value + stat.label}>
+            {ABOUT_STATS.map((stat, index) => (
+              <div
+                key={stat.value + stat.label}
+                data-reveal="fade"
+                style={{ "--reveal-delay": `${80 + index * 60}ms` }}
+              >
                 <div className="stat-value">{stat.value}</div>
                 <div className="stat-label">{stat.label}</div>
               </div>
@@ -121,12 +133,12 @@ export default function About() {
       {/* ── WHY CHOOSE US ──────────────────────────────────────────── */}
       <section className="section">
         <div className="container">
-          <div className="section-header">
+          <div className="section-header" data-reveal>
             <h2>Why choose Health Roster Automation</h2>
             <p>Designed specifically for the NHS context — not generic automation.</p>
           </div>
           <div className="content-grid">
-            <div>
+            <div data-reveal style={{ "--reveal-delay": "80ms" }}>
               <h3>NHS-specific expertise</h3>
               <ul className="bullet-list" style={{ marginTop: "10px" }}>
                 <li>Built around the HealthRoster platform</li>
@@ -135,7 +147,7 @@ export default function About() {
                 <li>48-hour average setup time</li>
               </ul>
             </div>
-            <div>
+            <div data-reveal style={{ "--reveal-delay": "150ms" }}>
               <h3>Transparent security posture</h3>
               <ul className="bullet-list" style={{ marginTop: "10px" }}>
                 <li>Credentials encrypted in transit</li>
@@ -144,7 +156,7 @@ export default function About() {
                 <li>Honest roadmap communication</li>
               </ul>
             </div>
-            <div>
+            <div data-reveal style={{ "--reveal-delay": "220ms" }}>
               <h3>Measurable outcomes</h3>
               <ul className="bullet-list" style={{ marginTop: "10px" }}>
                 <li>Hours saved on manual refresh</li>
@@ -159,7 +171,7 @@ export default function About() {
 
       {/* ── SECURITY TRANSPARENCY ──────────────────────────────────── */}
       <section className="section">
-        <div className="container about-security-block">
+        <div className="container about-security-block" data-reveal>
           <h2>Credential Security Transparency</h2>
           <p>
             We provide practical, status-based security communication so you can evaluate
@@ -178,7 +190,7 @@ export default function About() {
       {/* ── DEMO VIDEO ─────────────────────────────────────────────── */}
       <section className="section demo-section">
         <div className="container demo-grid">
-          <div className="demo-copy">
+          <div className="demo-copy" data-reveal>
             <h2>Watch the Automation Flow</h2>
             <p>
               A walkthrough of how we monitor HealthRoster, match shifts to your grade,
@@ -188,7 +200,7 @@ export default function About() {
               Book Your Demo
             </Link>
           </div>
-          <div className="demo-video">
+          <div className="demo-video" data-reveal style={{ "--reveal-delay": "120ms" }}>
             <div className="video-placeholder" role="img" aria-label="Automation walkthrough video coming soon">
               <div className="video-placeholder-inner">
                 <div className="video-play-btn" aria-hidden="true">
@@ -205,7 +217,7 @@ export default function About() {
 
       {/* ── FINAL CTA ──────────────────────────────────────────────── */}
       <section className="cta-section">
-        <div className="container cta-card">
+        <div className="container cta-card" data-reveal>
           <div>
             <h2>Ready to automate your shift booking?</h2>
             <p>Get set up in 48 hours. No commitment required before your demo.</p>

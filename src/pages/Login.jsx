@@ -1,12 +1,15 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { authedFetch } from "../utils/api.js";
+import useScrollReveal from "../utils/useScrollReveal.js";
 const initialState = {
   username: "",
   password: ""
 };
 
 export default function Login() {
+  useScrollReveal();
+
   const [formState, setFormState] = useState(initialState);
   const [status, setStatus] = useState({ state: "idle", message: "" });
   const navigate = useNavigate();
@@ -58,16 +61,16 @@ export default function Login() {
   return (
     <>
       <section className="page-hero">
-        <div className="container">
+        <div className="container" data-reveal>
           <span className="eyebrow">Client Portal</span>
-          <h1>Sign in to your sheets</h1>
+          <h1>Sign in to your dashboard</h1>
           <p className="lead">Access your live shift sheets and calendar view.</p>
         </div>
       </section>
 
       <section className="section">
         <div className="container auth-grid">
-          <form className="auth-card" onSubmit={handleSubmit}>
+          <form className="auth-card" onSubmit={handleSubmit} data-reveal>
             <label>
               Username
               <input
@@ -102,7 +105,7 @@ export default function Login() {
               Accounts are created by an admin. <Link to="/contact">Contact us</Link>
             </p>
           </form>
-          <div className="auth-aside">
+          <div className="auth-aside" data-reveal style={{ "--reveal-delay": "140ms" }}>
             <h2>What you get</h2>
             <ul className="bullet-list">
               <li>Live shift sheet updates</li>
