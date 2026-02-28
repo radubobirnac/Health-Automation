@@ -74,6 +74,7 @@ export default function Dashboard() {
     future.setDate(future.getDate() + 30);
     return toInputDate(future);
   });
+  const [username, setUsername] = useState("");
   const [userId, setUserId] = useState("");
   const [authChecked, setAuthChecked] = useState(false);
   const navigate = useNavigate();
@@ -103,6 +104,7 @@ export default function Dashboard() {
         const payload = await response.json();
         if (!isActive) return;
         setUserId(payload?.user_id || "");
+        setUsername(payload?.username || "");
         localStorage.setItem(
           "hr_auth",
           JSON.stringify({ username: payload?.username, role: payload?.role })
@@ -577,8 +579,7 @@ export default function Dashboard() {
         <div className="container dashboard-container">
           <div className="page-header-grid minimal">
             <div className="page-header-copy">
-              <div className="page-title">Shift Monitoring</div>
-              <div className="page-subtitle">Royal Survey</div>
+              <div className="page-title">Shift Monitoring - {sheetName}</div>
               <p className="page-desc">Manage weekly shift assignments.</p>
             </div>
             <div className="page-header-actions compact">
@@ -598,20 +599,9 @@ export default function Dashboard() {
                   onChange={(event) => setEndDate(event.target.value)}
                 />
               </div>
-              <div className="header-action-btns">
-                {status.message && (
-                  <span className="status-pill">{status.message}</span>
-                )}
-                <button className="btn btn-outline btn-sm" type="button" disabled>
-                  Filter
-                </button>
-                <button className="btn btn-outline btn-sm" type="button" disabled>
-                  Bulk edit
-                </button>
-                <button className="btn btn-primary btn-sm" type="button" disabled>
-                  Auto assign
-                </button>
-              </div>
+              {status.message && (
+                <span className="status-pill">{status.message}</span>
+              )}
             </div>
           </div>
         </div>
@@ -665,7 +655,7 @@ export default function Dashboard() {
                   aria-label="More options"
                   onClick={() => setIsMenuOpen((prev) => !prev)}
                 >
-                  •••
+                  ...
                 </button>
                 {isMenuOpen && (
                   <div className="menu-card" role="menu">

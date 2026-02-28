@@ -107,7 +107,7 @@ export default function Layout({ children }) {
                     </svg>
                   )}
                 </button>
-                <button className="btn-app-outline" type="button" onClick={handleSignOff}>
+                <button className="btn btn-primary" type="button" onClick={handleSignOff}>
                   Sign Off
                 </button>
               </>
