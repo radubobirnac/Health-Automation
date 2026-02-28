@@ -25,7 +25,10 @@ export default function App() {
         <Route path="/login" element={<Login />} />
         <Route path="/admin-login" element={<AdminLogin />} />
         <Route path="/signup" element={<Signup />} />
-        <Route path="/app" element={<Dashboard />} />
+        <Route
+          path="/app"
+          element={<AuthGuard><Dashboard /></AuthGuard>}
+        />
         <Route
           path="/trusts-data"
           element={<AuthGuard><TrustsData /></AuthGuard>}

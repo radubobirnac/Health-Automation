@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
+import { hasStoredPortalAccess } from "../utils/rbac.js";
 
 const THEME_STORAGE_KEY = "hr_theme";
 
@@ -14,7 +15,12 @@ export default function Layout({ children }) {
   const navigate = useNavigate();
   const location = useLocation();
   const isAuthed = useMemo(() => Boolean(localStorage.getItem("hr_token")), [location.pathname]);
+  const canAccessPortal = useMemo(() => hasStoredPortalAccess(), [location.pathname]);
   const isAppRoute = location.pathname.startsWith("/app");
+  const isPortalRoute =
+    location.pathname.startsWith("/portal-data") ||
+    location.pathname.startsWith("/trusts-data");
+  const isAppShell = isAppRoute || isPortalRoute;
 
   useEffect(() => {
     const root = document.documentElement;
@@ -54,9 +60,9 @@ export default function Layout({ children }) {
   return (
     <>
       <a className="skip-link" href="#main-content">Skip to main content</a>
-      <header className={`site-header${isAppRoute ? " site-header--app" : ""}`}>
+      <header className={`site-header${isAppShell ? " site-header--app" : ""}`}>
         <div className="container nav-wrap">
-          <Link className="brand" to={isAppRoute ? "/app" : "/"} aria-label="Health Roster Automation — go to dashboard">
+          <Link className="brand" to={isAppShell ? "/app" : "/"} aria-label="Health Roster Automation — go to dashboard">
             <div className="logo">HR</div>
             <div>
               <div className="brand-title">Health Roster Automation</div>
@@ -64,10 +70,10 @@ export default function Layout({ children }) {
             </div>
           </Link>
           <nav className="nav" aria-label="Main">
-            {isAppRoute ? (
+            {isAppShell ? (
               <>
                 <Link to="/app" className={location.pathname === "/app" ? "nav-active" : ""} aria-current={location.pathname === "/app" ? "page" : undefined}>Dashboard</Link>
-                {isAuthed && (
+                {canAccessPortal && (
                   <Link to="/portal-data" className={location.pathname === "/portal-data" ? "nav-active" : ""} aria-current={location.pathname === "/portal-data" ? "page" : undefined}>Portal Data</Link>
                 )}
               </>
@@ -77,7 +83,7 @@ export default function Layout({ children }) {
                 <Link to="/about" className={location.pathname === "/about" ? "nav-active" : ""} aria-current={location.pathname === "/about" ? "page" : undefined}>About</Link>
                 <Link to="/contact" className={location.pathname === "/contact" ? "nav-active" : ""} aria-current={location.pathname === "/contact" ? "page" : undefined}>Contact</Link>
                 <Link to="/security" className={location.pathname === "/security" ? "nav-active" : ""} aria-current={location.pathname === "/security" ? "page" : undefined}>Security</Link>
-                {isAuthed && (
+                {canAccessPortal && (
                   <Link to="/portal-data" className={location.pathname === "/portal-data" ? "nav-active" : ""} aria-current={location.pathname === "/portal-data" ? "page" : undefined}>Portal Data</Link>
                 )}
                 <Link to="/login" className={location.pathname === "/login" ? "nav-active" : ""} aria-current={location.pathname === "/login" ? "page" : undefined}>Client Portal</Link>
@@ -85,7 +91,7 @@ export default function Layout({ children }) {
             )}
           </nav>
           <div className="nav-actions" aria-label="Actions">
-            {isAppRoute ? (
+            {isAppShell ? (
               <>
                 <button
                   className="icon-btn"
@@ -187,10 +193,10 @@ export default function Layout({ children }) {
           </button>
         </div>
         <div className="mobile-nav-links">
-          {isAppRoute ? (
+          {isAppShell ? (
             <>
               <Link to="/app" className={location.pathname === "/app" ? "nav-active" : ""}>Dashboard</Link>
-              {isAuthed && (
+              {canAccessPortal && (
                 <Link to="/portal-data" className={location.pathname === "/portal-data" ? "nav-active" : ""}>Portal Data</Link>
               )}
             </>
@@ -200,7 +206,7 @@ export default function Layout({ children }) {
               <Link to="/about" className={location.pathname === "/about" ? "nav-active" : ""}>About</Link>
               <Link to="/contact" className={location.pathname === "/contact" ? "nav-active" : ""}>Contact</Link>
               <Link to="/security" className={location.pathname === "/security" ? "nav-active" : ""}>Security</Link>
-              {isAuthed && (
+              {canAccessPortal && (
                 <Link to="/portal-data" className={location.pathname === "/portal-data" ? "nav-active" : ""}>Portal Data</Link>
               )}
               <Link to="/login" className={location.pathname === "/login" ? "nav-active" : ""}>Client Portal</Link>
@@ -208,7 +214,7 @@ export default function Layout({ children }) {
           )}
         </div>
         <div className="mobile-nav-actions">
-          {isAppRoute ? (
+          {isAppShell ? (
             <>
               <button
                 className="btn btn-outline"

@@ -4,6 +4,7 @@ import SchedulerGrid from "../components/SchedulerGrid.jsx";
 import SheetGrid from "../components/SheetGrid.jsx";
 import ShiftTypeManager from "../components/ShiftTypeManager.jsx";
 import { authedFetch } from "../utils/api.js";
+import { hasPortalAccess } from "../utils/rbac.js";
 import { getShiftClass } from "../utils/shiftClass.js";
 const LOG_COLUMNS = ["Column A", "Column B", "Column C", "Column D", "Column E", "Column F"];
 
@@ -103,6 +104,9 @@ export default function Dashboard() {
         }
         const payload = await response.json();
         if (!isActive) return;
+        if (!hasPortalAccess(payload?.role)) {
+          throw new Error("Unauthorized");
+        }
         setUserId(payload?.user_id || "");
         setUsername(payload?.username || "");
         localStorage.setItem(

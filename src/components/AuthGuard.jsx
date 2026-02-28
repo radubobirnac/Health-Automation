@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { authedFetch } from "../utils/api.js";
+import { hasPortalAccess } from "../utils/rbac.js";
 
 export default function AuthGuard({ children }) {
   const [allowed, setAllowed] = useState(false);
@@ -24,7 +25,7 @@ export default function AuthGuard({ children }) {
         }
         const payload = await response.json();
         if (!isActive) return;
-        if (payload?.role === "admin" || payload?.role === "client") {
+        if (hasPortalAccess(payload?.role)) {
           setAllowed(true);
         } else {
           localStorage.removeItem("hr_token");
