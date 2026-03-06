@@ -1433,8 +1433,8 @@ body {
 }
 
 .date-col {
-  width: 78px;
-  min-width: 78px;
+  width: 63.21px;
+  min-width: 63.21px;
   text-align: center;
 }
 
@@ -1458,8 +1458,8 @@ body {
 
 .date-col.header-cell,
 .scheduler-table-dates thead th {
-  height: 40px;
-  min-height: 40px;
+  height: 63.21px;
+  min-height: 63.21px;
   padding-top: 6px;
   padding-bottom: 6px;
 }

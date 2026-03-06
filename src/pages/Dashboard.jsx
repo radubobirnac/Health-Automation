@@ -632,6 +632,18 @@ export default function Dashboard() {
           </div>
 
           <div className="action-bar minimal">
+            <div className="action-bar-left">
+              {!isLogsSheet && (
+                <button
+                  className="btn btn-danger btn-sm"
+                  type="button"
+                  disabled={!selectedRowIds.length}
+                  onClick={handleDeleteSelectedRows}
+                >
+                  Delete Selected Rows
+                </button>
+              )}
+            </div>
             <div className="action-bar-right">
               {!isLogsSheet && (
                 <button

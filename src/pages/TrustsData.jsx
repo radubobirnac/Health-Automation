@@ -100,9 +100,6 @@ export default function TrustsData() {
                 onChange={(event) => setQuery(event.target.value)}
               />
             </div>
-            <div className="status-pill">
-              {filtered.length} / {rows.length} rows
-            </div>
           </div>
 
           <div className="sheet-table-wrapper trusts-table-wrapper">
@@ -132,6 +129,14 @@ export default function TrustsData() {
                 )}
               </tbody>
             </table>
+          </div>
+          <div
+            className="sheet-actions-row"
+            style={{ justifyContent: "center", marginTop: "12px" }}
+          >
+            <div className="status-pill">
+              {filtered.length} / {rows.length} rows
+            </div>
           </div>
         </div>
       </section>
