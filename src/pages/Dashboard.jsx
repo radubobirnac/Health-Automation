@@ -539,6 +539,13 @@ export default function Dashboard() {
   const handleRename = async (overrideName) => {
     if (!activeSheetId) return;
     const active = sheets.find((sheet) => sheet.sheet_id === activeSheetId);
+    if (
+      active?.sheet_id === "logs" ||
+      (active?.name || "").toLowerCase() === "logs"
+    ) {
+      return;
+    }
+    const previousName = active?.name ?? sheetName;
     const trimmed = (overrideName ?? sheetName).trim();
     if (!trimmed) return;
     if (active && (active.name || "").trim() === trimmed) return;
@@ -560,6 +567,7 @@ export default function Dashboard() {
       setSheetName(payload.name);
     } catch (error) {
       setStatus({ state: "error", message: "Rename failed." });
+      setSheetName(previousName);
     }
   };
 
@@ -633,6 +641,23 @@ export default function Dashboard() {
 
           <div className="action-bar minimal">
             <div className="action-bar-left">
+              <div className="sheet-field sheet-name-field">
+                <label>Sheet name</label>
+                <input
+                  type="text"
+                  value={sheetName}
+                  placeholder={isLogsSheet ? "Logs sheet (locked)" : "Enter sheet name"}
+                  onChange={(event) => setSheetName(event.target.value)}
+                  onBlur={(event) => handleRename(event.target.value)}
+                  onKeyDown={(event) => {
+                    if (event.key === "Enter") {
+                      event.preventDefault();
+                      event.currentTarget.blur();
+                    }
+                  }}
+                  disabled={isLogsSheet}
+                />
+              </div>
               {!isLogsSheet && (
                 <button
                   className="btn btn-danger btn-sm"

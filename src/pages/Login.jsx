@@ -7,10 +7,47 @@ const initialState = {
   password: ""
 };
 
+const IconEye = () => (
+  <svg
+    width="18"
+    height="18"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    aria-hidden="true"
+  >
+    <path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7Z" />
+    <circle cx="12" cy="12" r="3" />
+  </svg>
+);
+
+const IconEyeOff = () => (
+  <svg
+    width="18"
+    height="18"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    aria-hidden="true"
+  >
+    <path d="M3 3l18 18" />
+    <path d="M10.6 10.6a2 2 0 0 0 2.8 2.8" />
+    <path d="M9.9 4.2A10.3 10.3 0 0 1 12 4c6.5 0 10 8 10 8a20.3 20.3 0 0 1-4.2 5.6" />
+    <path d="M6.1 6.1A20.3 20.3 0 0 0 2 12s3.5 8 10 8a10.3 10.3 0 0 0 4.2-.9" />
+  </svg>
+);
+
 export default function Login() {
   useScrollReveal();
 
   const [formState, setFormState] = useState(initialState);
+  const [showPassword, setShowPassword] = useState(false);
   const [status, setStatus] = useState({ state: "idle", message: "" });
   const navigate = useNavigate();
 
@@ -84,14 +121,27 @@ export default function Login() {
             </label>
             <label>
               Password
-              <input
-                type="password"
-                name="password"
-                placeholder="••••••••"
-                value={formState.password}
-                onChange={handleChange}
-                required
-              />
+              <div className="password-field">
+                <input
+                  className="password-input"
+                  type={showPassword ? "text" : "password"}
+                  name="password"
+                  placeholder="Enter your password"
+                  value={formState.password}
+                  onChange={handleChange}
+                  required
+                />
+                {/* <button
+                  className="password-toggle"
+                  type="button"
+                  aria-label={showPassword ? "Hide password" : "Show password"}
+                  aria-pressed={showPassword}
+                  onMouseDown={(event) => event.preventDefault()}
+                  onClick={() => setShowPassword((prev) => !prev)}
+                >
+                  {showPassword ? <IconEyeOff /> : <IconEye />}
+                </button> */}
+              </div>
             </label>
             <button className="btn btn-primary" type="submit" disabled={status.state === "sending"}>
               {status.state === "sending" ? "Signing in..." : "Sign in"}
