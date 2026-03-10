@@ -17,7 +17,10 @@ export default function SheetGrid({
   rows,
   onRowsChange,
   showControls = true,
-  variant = ""
+  variant = "",
+  enableSelection = false,
+  selectedRowIds = [],
+  onToggleRow
 }) {
   const handleChange = (rowIndex, key, value) => {
     const next = rows.map((row, idx) =>
@@ -90,6 +93,8 @@ export default function SheetGrid({
 
   const cardClassName = variant ? `sheet-card sheet-card--${variant}` : "sheet-card";
 
+  const isSelected = (rowId) => selectedRowIds.includes(rowId);
+
   return (
     <div className={cardClassName}>
       {showControls && (
@@ -104,6 +109,7 @@ export default function SheetGrid({
         <table className="sheet-table">
           <thead>
             <tr>
+              {enableSelection && <th className="sheet-select-col">Select</th>}
               {columns.map((column) => (
                 <th key={column}>{column}</th>
               ))}
@@ -112,6 +118,19 @@ export default function SheetGrid({
           <tbody>
             {rows.map((row, rowIndex) => (
               <tr key={`${rowIndex}-${row["Cell Reference"] || "row"}`}>
+                {enableSelection && (
+                  <td className="sheet-select-col">
+                    <input
+                      type="checkbox"
+                      checked={row?.id ? isSelected(row.id) : false}
+                      onChange={() => {
+                        if (!row?.id || !onToggleRow) return;
+                        onToggleRow(row.id);
+                      }}
+                      aria-label="Select row"
+                    />
+                  </td>
+                )}
                 {columns.map((column, colIndex) => {
                   return (
                     <td key={column}>

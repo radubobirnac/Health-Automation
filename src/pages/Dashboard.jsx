@@ -695,6 +695,16 @@ export default function Dashboard() {
                   Delete Selected Rows
                 </button>
               )}
+              {isLogsSheet && (
+                <button
+                  className="btn btn-danger btn-sm"
+                  type="button"
+                  disabled={!selectedRowIds.length}
+                  onClick={handleDeleteSelectedRows}
+                >
+                  Delete Selected Rows
+                </button>
+              )}
             </div>
             <div className="action-bar-right">
               {!isLogsSheet && (
@@ -772,6 +782,9 @@ export default function Dashboard() {
                   onRowsChange={handleLogsRowsChange}
                   showControls={false}
                   variant="logs"
+                  enableSelection
+                  selectedRowIds={selectedRowIds}
+                  onToggleRow={handleToggleRow}
                 />
               ) : (
                 <SchedulerGrid

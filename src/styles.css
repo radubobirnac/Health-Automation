@@ -1889,6 +1889,16 @@ body {
   background: var(--white);
 }
 
+.sheet-select-col {
+  width: 48px;
+  text-align: center;
+}
+
+.sheet-select-col input {
+  width: 16px;
+  height: 16px;
+}
+
 .sheet-card--logs .sheet-table th,
 .sheet-card--logs .sheet-table td {
   font-size: 0.82rem;
