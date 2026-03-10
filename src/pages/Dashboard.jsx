@@ -6,7 +6,7 @@ import ShiftTypeManager from "../components/ShiftTypeManager.jsx";
 import { authedFetch } from "../utils/api.js";
 import { hasPortalAccess } from "../utils/rbac.js";
 import { getShiftClass } from "../utils/shiftClass.js";
-const LOG_COLUMNS = ["Column A", "Column B", "Column C", "Column D", "Column E", "Column F"];
+const LOG_COLUMNS = ["Nurse Name","Request ID", "Date", "Start Time", "End Time", "Unit", " RequestGrade", "Validation Errors"];
 
 const buildDateRange = (start, end) => {
   const dates = [];
