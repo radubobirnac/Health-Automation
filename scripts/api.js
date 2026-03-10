@@ -14,6 +14,34 @@ const createLogsSheet = () => ({
 });
 
 const DEFAULT_SHIFT_TYPES = ["LD", "E", "N", "AE"];
+const BOOKED_PREFIX = "B-";
+
+const normalizeShiftType = (value) => (value || "").trim().toUpperCase();
+
+const ensureBookedShiftTypes = (types = []) => {
+  const ordered = [];
+  const seen = new Set();
+
+  const add = (value) => {
+    const normalized = normalizeShiftType(value);
+    if (!normalized || seen.has(normalized)) return;
+    seen.add(normalized);
+    ordered.push(normalized);
+  };
+
+  types.forEach((type) => {
+    const normalized = normalizeShiftType(type);
+    if (!normalized) return;
+    if (normalized.startsWith(BOOKED_PREFIX)) {
+      add(normalized);
+      return;
+    }
+    add(normalized);
+    add(`${BOOKED_PREFIX}${normalized}`);
+  });
+
+  return ordered;
+};
 
 const createUserSeed = (clientName = "") => {
   const seed = {
@@ -24,7 +52,7 @@ const createUserSeed = (clientName = "") => {
     shiftsBySheet: {
       "sheet-main": clone(DEFAULT_SHIFTS)
     },
-    shiftTypes: clone(DEFAULT_SHIFT_TYPES),
+    shiftTypes: ensureBookedShiftTypes(clone(DEFAULT_SHIFT_TYPES)),
     dataRows: []
   };
   if (!seed.sheets.some((sheet) => sheet.sheet_id === "logs")) {
@@ -76,7 +104,9 @@ const loadUserDb = async (userId) => {
   if (doc.exists) {
     const data = doc.data();
     data.dataRows = data.dataRows || [];
-    data.shiftTypes = data.shiftTypes || clone(DEFAULT_SHIFT_TYPES);
+    data.shiftTypes = ensureBookedShiftTypes(
+      data.shiftTypes?.length ? data.shiftTypes : clone(DEFAULT_SHIFT_TYPES)
+    );
     return data;
   }
   const seed = createUserSeed();
@@ -279,6 +309,23 @@ const validateIngestRow = (row) => {
   return { errors: [], normalized };
 };
 
+const extractRows = (payload) => {
+  if (Array.isArray(payload?.rows)) return payload.rows;
+  if (payload?.row) return [payload.row];
+  if (Array.isArray(payload)) return payload;
+  return [];
+};
+
+const normalizeLogRow = (row) => {
+  if (!row || typeof row !== "object") return null;
+  const copy = { ...row };
+  if (!copy.id) {
+    copy.id = createId();
+  }
+  copy.logged_at = copy.logged_at || new Date().toISOString();
+  return copy;
+};
+
 export const stripBase = (path, base) => {
   if (path.startsWith(base)) {
     const sliced = path.slice(base.length);
@@ -476,6 +523,65 @@ export const handleApiRequest = async ({ method, path, query = {}, body, headers
     });
   }
 
+  if (upperMethod === "POST" && (path === "/logs" || path === "/logs/append")) {
+    const secretProvided =
+      getHeaderValue(headers, "API_SECRET") || getHeaderValue(headers, "X-API-SECRET");
+
+    if (secretProvided) {
+      const ingestAuth = requireIngestSecret(headers);
+      if (ingestAuth.error) {
+        await logAudit({
+          action: "logs_append",
+          status: "unauthorized",
+          user_id: "ingest-bot",
+          role: "ingest"
+        });
+        return ingestAuth.error;
+      }
+      const ingestUserId = normalizeName(body?.user_id) ||
+        normalizeName(process.env.INGEST_USER_ID) ||
+        "ingest-bot";
+      const userDb = await loadUserDb(ingestUserId);
+      ensureLogsSheet(userDb);
+      const rows = extractRows(body);
+      if (!rows.length) {
+        return response(400, { error: "Payload must include rows." });
+      }
+      const normalizedRows = rows.map(normalizeLogRow).filter(Boolean);
+      if (!normalizedRows.length) {
+        return response(400, { error: "Payload must include valid log rows." });
+      }
+      userDb.nursesBySheet.logs.push(...normalizedRows);
+      await saveUserDb(ingestUserId, userDb);
+      await logAudit({
+        action: "logs_append",
+        status: "success",
+        user_id: ingestUserId,
+        role: "ingest",
+        row_count: normalizedRows.length
+      });
+      return response(201, { ok: true, inserted: normalizedRows.length });
+    }
+
+    const authResult = await requireAuth(headers);
+    if (authResult.error) {
+      return authResult.error;
+    }
+    const userDb = await loadUserDb(authResult.user_id);
+    ensureLogsSheet(userDb);
+    const rows = extractRows(body);
+    if (!rows.length) {
+      return response(400, { error: "Payload must include rows." });
+    }
+    const normalizedRows = rows.map(normalizeLogRow).filter(Boolean);
+    if (!normalizedRows.length) {
+      return response(400, { error: "Payload must include valid log rows." });
+    }
+    userDb.nursesBySheet.logs.push(...normalizedRows);
+    await saveUserDb(authResult.user_id, userDb);
+    return response(201, { ok: true, inserted: normalizedRows.length });
+  }
+
   const authResult = await requireAuth(headers);
   if (authResult.error) {
     return authResult.error;
@@ -573,6 +679,9 @@ export const handleApiRequest = async ({ method, path, query = {}, body, headers
     const source = userDb.sheets.find((sheet) => sheet.sheet_id === sourceId);
     if (!source) {
       return response(404, { error: "Sheet not found." });
+    }
+    if (source.sheet_id === "logs" || (source.name || "").toLowerCase() === "logs") {
+      return response(403, { error: "The Logs sheet cannot be duplicated." });
     }
     const sheet = {
       ...clone(source),
@@ -712,12 +821,17 @@ export const handleApiRequest = async ({ method, path, query = {}, body, headers
 
   if (upperMethod === "GET" && path === "/shift-types") {
     const userDb = await loadUserDb(userId);
-    return response(200, { shiftTypes: userDb.shiftTypes || clone(DEFAULT_SHIFT_TYPES) });
+    const ensured = ensureBookedShiftTypes(
+      userDb.shiftTypes?.length ? userDb.shiftTypes : clone(DEFAULT_SHIFT_TYPES)
+    );
+    userDb.shiftTypes = ensured;
+    await saveUserDb(userId, userDb);
+    return response(200, { shiftTypes: ensured });
   }
 
   if (upperMethod === "POST" && path === "/shift-types/upsert") {
-    const oldName = normalizeName(body?.old_name).toUpperCase();
-    const newName = normalizeName(body?.new_name).toUpperCase();
+    const oldName = normalizeShiftType(body?.old_name);
+    const newName = normalizeShiftType(body?.new_name);
     if (!newName) {
       return response(400, { error: "new_name is required." });
     }
@@ -725,7 +839,15 @@ export const handleApiRequest = async ({ method, path, query = {}, body, headers
       return response(400, { error: "Shift type name must be 6 characters or fewer." });
     }
     const userDb = await loadUserDb(userId);
-    const types = userDb.shiftTypes || clone(DEFAULT_SHIFT_TYPES);
+    const types = ensureBookedShiftTypes(
+      userDb.shiftTypes?.length ? userDb.shiftTypes : clone(DEFAULT_SHIFT_TYPES)
+    );
+    const removeType = (value) => {
+      const idx = types.indexOf(value);
+      if (idx >= 0) {
+        types.splice(idx, 1);
+      }
+    };
     if (oldName) {
       const index = types.indexOf(oldName);
       if (index === -1) {
@@ -735,32 +857,44 @@ export const handleApiRequest = async ({ method, path, query = {}, body, headers
         return response(409, { error: "Shift type already exists." });
       }
       types[index] = newName;
+      if (!oldName.startsWith(BOOKED_PREFIX)) {
+        removeType(`${BOOKED_PREFIX}${oldName}`);
+      }
     } else {
       if (types.includes(newName)) {
         return response(409, { error: "Shift type already exists." });
       }
       types.push(newName);
     }
-    userDb.shiftTypes = types;
+    userDb.shiftTypes = ensureBookedShiftTypes(types);
     await saveUserDb(userId, userDb);
-    return response(200, { shiftTypes: types });
+    return response(200, { shiftTypes: userDb.shiftTypes });
   }
 
   if (upperMethod === "POST" && path === "/shift-types/delete") {
-    const name = normalizeName(body?.name).toUpperCase();
+    const name = normalizeShiftType(body?.name);
     if (!name) {
       return response(400, { error: "name is required." });
     }
     const userDb = await loadUserDb(userId);
-    const types = userDb.shiftTypes || clone(DEFAULT_SHIFT_TYPES);
+    const types = ensureBookedShiftTypes(
+      userDb.shiftTypes?.length ? userDb.shiftTypes : clone(DEFAULT_SHIFT_TYPES)
+    );
     const index = types.indexOf(name);
     if (index === -1) {
       return response(404, { error: "Shift type not found." });
     }
     types.splice(index, 1);
-    userDb.shiftTypes = types;
+    if (!name.startsWith(BOOKED_PREFIX)) {
+      const booked = `${BOOKED_PREFIX}${name}`;
+      const bookedIndex = types.indexOf(booked);
+      if (bookedIndex >= 0) {
+        types.splice(bookedIndex, 1);
+      }
+    }
+    userDb.shiftTypes = ensureBookedShiftTypes(types);
     await saveUserDb(userId, userDb);
-    return response(200, { shiftTypes: types });
+    return response(200, { shiftTypes: userDb.shiftTypes });
   }
 
   return response(404, { error: "Not found." });
@@ -779,7 +913,8 @@ export const createViteMiddleware = () => {
         path.startsWith("/data") ||
         path.startsWith("/admin-api") ||
         path.startsWith("/auth") ||
-        path.startsWith("/shift-types")
+        path.startsWith("/shift-types") ||
+        path.startsWith("/logs")
       )
     ) {
       next();

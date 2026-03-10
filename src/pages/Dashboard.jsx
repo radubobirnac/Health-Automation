@@ -370,6 +370,9 @@ export default function Dashboard() {
   const handleDuplicateSheet = async () => {
     const active = sheets.find((sheet) => sheet.sheet_id === activeSheetId);
     if (!active) return;
+    if (active.sheet_id === "logs" || (active.name || "").toLowerCase() === "logs") {
+      return;
+    }
     try {
       const response = await authedFetch("/sheets/duplicate", {
         method: "POST",
@@ -679,14 +682,15 @@ export default function Dashboard() {
                   Edit Shift Types
                 </button>
               )}
-              <button
-                className="btn btn-outline btn-sm"
-                type="button"
-                disabled={isLogsSheet}
-                onClick={handleDuplicateSheet}
-              >
-                Duplicate Sheet
-              </button>
+              {!isLogsSheet && (
+                <button
+                  className="btn btn-outline btn-sm"
+                  type="button"
+                  onClick={handleDuplicateSheet}
+                >
+                  Duplicate Sheet
+                </button>
+              )}
               <div className="menu-wrap" ref={menuRef}>
                 <button
                   className="btn btn-outline btn-sm ellipsis-btn"
