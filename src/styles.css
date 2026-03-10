@@ -1889,6 +1889,17 @@ body {
   background: var(--white);
 }
 
+.sheet-card--logs .sheet-table th,
+.sheet-card--logs .sheet-table td {
+  font-size: 0.82rem;
+  padding: 8px 10px;
+}
+
+.sheet-card--logs .sheet-table input {
+  font-size: 0.82rem;
+  padding: 6px 8px;
+}
+
 .trusts-table-wrapper {
   max-height: 560px;
 }

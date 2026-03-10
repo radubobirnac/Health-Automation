@@ -16,7 +16,8 @@ export default function SheetGrid({
   columns,
   rows,
   onRowsChange,
-  showControls = true
+  showControls = true,
+  variant = ""
 }) {
   const handleChange = (rowIndex, key, value) => {
     const next = rows.map((row, idx) =>
@@ -87,8 +88,10 @@ export default function SheetGrid({
     onRowsChange(nextRows);
   };
 
+  const cardClassName = variant ? `sheet-card sheet-card--${variant}` : "sheet-card";
+
   return (
-    <div className="sheet-card">
+    <div className={cardClassName}>
       {showControls && (
         <div className="sheet-actions">
           <button className="btn btn-outline" type="button" onClick={handleAddRow}>

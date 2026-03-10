@@ -771,6 +771,7 @@ export default function Dashboard() {
                   rows={nurses}
                   onRowsChange={handleLogsRowsChange}
                   showControls={false}
+                  variant="logs"
                 />
               ) : (
                 <SchedulerGrid
