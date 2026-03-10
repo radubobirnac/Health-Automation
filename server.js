@@ -16,7 +16,8 @@ const apiPrefixes = [
   "/nurses",
   "/data",
   "/shift-types",
-  "/logs"
+  "/logs",
+  "/log"
 ];
 
 const contentTypes = {

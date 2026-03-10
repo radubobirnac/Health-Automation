@@ -523,7 +523,10 @@ export const handleApiRequest = async ({ method, path, query = {}, body, headers
     });
   }
 
-  if (upperMethod === "POST" && (path === "/logs" || path === "/logs/append")) {
+  if (
+    upperMethod === "POST" &&
+    (path === "/logs" || path === "/logs/append" || path === "/log" || path === "/log/append")
+  ) {
     const secretProvided =
       getHeaderValue(headers, "API_SECRET") || getHeaderValue(headers, "X-API-SECRET");
 
@@ -914,7 +917,8 @@ export const createViteMiddleware = () => {
         path.startsWith("/admin-api") ||
         path.startsWith("/auth") ||
         path.startsWith("/shift-types") ||
-        path.startsWith("/logs")
+        path.startsWith("/logs") ||
+        path.startsWith("/log")
       )
     ) {
       next();
