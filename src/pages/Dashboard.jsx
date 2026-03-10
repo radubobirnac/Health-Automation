@@ -6,7 +6,19 @@ import ShiftTypeManager from "../components/ShiftTypeManager.jsx";
 import { authedFetch } from "../utils/api.js";
 import { hasPortalAccess } from "../utils/rbac.js";
 import { getShiftClass } from "../utils/shiftClass.js";
-const LOG_COLUMNS = ["Nurse Name","Request ID", "Date", "Start Time", "End Time", "Unit", " RequestGrade", "Validation Errors"];
+const LOG_COLUMNS = [
+  "Request ID",
+  "Nurse Name",
+  "Unit",
+  "Request Grade",
+  "Start Time",
+  "End Time",
+  "Date",
+  "Start Booking Time",
+  "Booked At",
+  "Validation Errors",
+  "Booked By"
+];
 
 const buildDateRange = (start, end) => {
   const dates = [];
@@ -577,6 +589,18 @@ export default function Dashboard() {
   const activeSheet = sheets.find((sheet) => sheet.sheet_id === activeSheetId);
   const isLogsSheet =
     activeSheet?.sheet_id === "logs" || (activeSheet?.name || "").toLowerCase() === "logs";
+  const orderedSheets = useMemo(() => {
+    if (!sheets.length) return sheets;
+    const logs = sheets.find(
+      (sheet) => sheet.sheet_id === "logs" || (sheet.name || "").toLowerCase() === "logs"
+    );
+    const rest = sheets.filter(
+      (sheet) => !(sheet.sheet_id === "logs" || (sheet.name || "").toLowerCase() === "logs")
+    );
+    if (!logs) return sheets;
+    if (rest.length === 0) return [logs];
+    return [rest[0], logs, ...rest.slice(1)];
+  }, [sheets]);
 
   if (!authChecked) {
     return (
@@ -625,7 +649,7 @@ export default function Dashboard() {
       <section className="section dashboard-section">
         <div className="container dashboard-container">
           <div className="sheet-tabs sheet-tabs--minimal">
-            {sheets.map((sheet) => (
+            {orderedSheets.map((sheet) => (
               <button
                 key={sheet.sheet_id}
                 type="button"
