@@ -16,7 +16,10 @@ export default function Layout({ children }) {
   const location = useLocation();
   const isAuthed = useMemo(() => Boolean(localStorage.getItem("hr_token")), [location.pathname]);
   const canAccessPortal = useMemo(() => hasStoredPortalAccess(), [location.pathname]);
-  const isAppRoute = location.pathname.startsWith("/app");
+  const isAppRoute =
+    location.pathname.startsWith("/app") ||
+    location.pathname.startsWith("/logs") ||
+    location.pathname.startsWith("/bot-active");
   const isPortalRoute =
     location.pathname.startsWith("/portal-data") ||
     location.pathname.startsWith("/trusts-data");
@@ -73,9 +76,11 @@ export default function Layout({ children }) {
             {isAppShell ? (
               <>
                 <Link to="/app" className={location.pathname === "/app" ? "nav-active" : ""} aria-current={location.pathname === "/app" ? "page" : undefined}>Dashboard</Link>
+                <Link to="/logs" className={location.pathname === "/logs" ? "nav-active" : ""} aria-current={location.pathname === "/logs" ? "page" : undefined}>Logs</Link>
                 {canAccessPortal && (
                   <Link to="/portal-data" className={location.pathname === "/portal-data" ? "nav-active" : ""} aria-current={location.pathname === "/portal-data" ? "page" : undefined}>Portal Data</Link>
                 )}
+                <Link to="/bot-active" className={location.pathname === "/bot-active" ? "nav-active" : ""} aria-current={location.pathname === "/bot-active" ? "page" : undefined}>Bot Active</Link>
               </>
             ) : (
               <>
@@ -196,9 +201,11 @@ export default function Layout({ children }) {
           {isAppShell ? (
             <>
               <Link to="/app" className={location.pathname === "/app" ? "nav-active" : ""}>Dashboard</Link>
+              <Link to="/logs" className={location.pathname === "/logs" ? "nav-active" : ""}>Logs</Link>
               {canAccessPortal && (
                 <Link to="/portal-data" className={location.pathname === "/portal-data" ? "nav-active" : ""}>Portal Data</Link>
               )}
+              <Link to="/bot-active" className={location.pathname === "/bot-active" ? "nav-active" : ""}>Bot Active</Link>
             </>
           ) : (
             <>

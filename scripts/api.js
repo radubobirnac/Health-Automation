@@ -326,6 +326,14 @@ const normalizeLogRow = (row) => {
   return copy;
 };
 
+const normalizeBotStatus = (payload) => {
+  if (!payload || typeof payload !== "object") return null;
+  return {
+    ...payload,
+    received_at: new Date().toISOString()
+  };
+};
+
 export const stripBase = (path, base) => {
   if (path.startsWith(base)) {
     const sliced = path.slice(base.length);
@@ -336,6 +344,16 @@ export const stripBase = (path, base) => {
 
 export const handleApiRequest = async ({ method, path, query = {}, body, headers = {} }) => {
   const upperMethod = (method || "GET").toUpperCase();
+  let normalizedPath = path;
+  if (normalizedPath === "/portal-data") {
+    normalizedPath = "/data/rows";
+  }
+  if (normalizedPath === "/bot-data" || normalizedPath === "/bot-status") {
+    normalizedPath = "/bot/status";
+  }
+  if (normalizedPath !== path) {
+    path = normalizedPath;
+  }
 
   const ensureLogsSheet = (userDb) => {
     const exists = userDb.sheets.some(
@@ -585,9 +603,182 @@ export const handleApiRequest = async ({ method, path, query = {}, body, headers
     return response(201, { ok: true, inserted: normalizedRows.length });
   }
 
+  if (path === "/sheets" || path === "/schedule" || path === "/schedule/update" ||
+      path === "/nurses/upsert" || path === "/nurses/delete") {
+    const secretProvided =
+      getHeaderValue(headers, "API_SECRET") || getHeaderValue(headers, "X-API-SECRET");
+    if (secretProvided) {
+      const ingestAuth = requireIngestSecret(headers);
+      if (ingestAuth.error) {
+        await logAudit({
+          action: "api_secret_access",
+          status: "unauthorized",
+          user_id: "ingest-bot",
+          role: "ingest"
+        });
+        return ingestAuth.error;
+      }
+      const secretUserId =
+        normalizeName(body?.user_id) ||
+        normalizeName(query?.user_id) ||
+        normalizeName(process.env.INGEST_USER_ID) ||
+        "ingest-bot";
+
+      if (upperMethod === "GET" && path === "/sheets") {
+        const userDb = await loadUserDb(secretUserId);
+        ensureLogsSheet(userDb);
+        await saveUserDb(secretUserId, userDb);
+        return response(200, { sheets: userDb.sheets });
+      }
+
+      if (upperMethod === "GET" && path === "/schedule") {
+        const userDb = await loadUserDb(secretUserId);
+        const sheetId = query.sheet_id;
+        const start = query.start;
+        const end = query.end;
+        if (!sheetId || !start || !end) {
+          return response(400, { error: "Missing sheet_id, start, or end." });
+        }
+        const sheet = userDb.sheets.find((item) => item.sheet_id === sheetId);
+        if (!sheet) {
+          return response(404, { error: "Sheet not found." });
+        }
+        const nurses = userDb.nursesBySheet[sheetId] || [];
+        const shifts = (userDb.shiftsBySheet[sheetId] || []).filter((shift) =>
+          betweenDates(shift.date, start, end)
+        );
+        return response(200, { sheet, nurses, shifts });
+      }
+
+      if (upperMethod === "POST" && path === "/schedule/update") {
+        const userDb = await loadUserDb(secretUserId);
+        const sheetId = body?.sheet_id;
+        const nurseId = body?.nurse_id;
+        const date = body?.date;
+        const shift = body?.shift;
+        if (!sheetId || !nurseId || !date) {
+          return response(400, { error: "Missing sheet_id, nurse_id, or date." });
+        }
+        const current = userDb.shiftsBySheet[sheetId] || [];
+        const existingIndex = current.findIndex(
+          (item) => item.nurse_id === nurseId && item.date === date
+        );
+        const trimmedShift = normalizeName(shift);
+        if (!trimmedShift) {
+          if (existingIndex >= 0) {
+            current.splice(existingIndex, 1);
+          }
+        } else if (existingIndex >= 0) {
+          current[existingIndex].shift = trimmedShift;
+        } else {
+          current.push({ nurse_id: nurseId, date, shift: trimmedShift });
+        }
+        userDb.shiftsBySheet[sheetId] = current;
+        await saveUserDb(secretUserId, userDb);
+        return response(200, { ok: true });
+      }
+
+      if (upperMethod === "POST" && path === "/nurses/upsert") {
+        const userDb = await loadUserDb(secretUserId);
+        const sheetId = body?.sheet_id;
+        const rows = body?.nurses || (body?.nurse ? [body.nurse] : []);
+        if (!sheetId || rows.length === 0) {
+          return response(400, { error: "Sheet id and nurses are required." });
+        }
+        const list = userDb.nursesBySheet[sheetId] || [];
+        rows.forEach((row) => {
+          if (!row?.id) {
+            row.id = createId();
+          }
+          const index = list.findIndex((nurse) => nurse.id === row.id);
+          if (index >= 0) {
+            list[index] = { ...list[index], ...row };
+          } else {
+            list.push({ ...row });
+          }
+        });
+        userDb.nursesBySheet[sheetId] = list;
+        await saveUserDb(secretUserId, userDb);
+        return response(200, { ok: true, nurses: rows });
+      }
+
+      if (upperMethod === "POST" && path === "/nurses/delete") {
+        const userDb = await loadUserDb(secretUserId);
+        const sheetId = body?.sheet_id;
+        const nurseIds = body?.nurse_ids || [];
+        if (!sheetId || nurseIds.length === 0) {
+          return response(400, { error: "Sheet id and nurse ids are required." });
+        }
+        userDb.nursesBySheet[sheetId] = (userDb.nursesBySheet[sheetId] || []).filter(
+          (nurse) => !nurseIds.includes(nurse.id)
+        );
+        userDb.shiftsBySheet[sheetId] = (userDb.shiftsBySheet[sheetId] || []).filter(
+          (shift) => !nurseIds.includes(shift.nurse_id)
+        );
+        await saveUserDb(secretUserId, userDb);
+        return response(200, { ok: true });
+      }
+    }
+  }
+
+  if (path === "/bot/status" || path === "/bot/heartbeat") {
+    const secretProvided =
+      getHeaderValue(headers, "API_SECRET") || getHeaderValue(headers, "X-API-SECRET");
+    if (secretProvided) {
+      const ingestAuth = requireIngestSecret(headers);
+      if (ingestAuth.error) {
+        await logAudit({
+          action: "bot_status",
+          status: "unauthorized",
+          user_id: "ingest-bot",
+          role: "ingest"
+        });
+        return ingestAuth.error;
+      }
+      if (upperMethod !== "POST") {
+        return response(405, { error: "Method not allowed." });
+      }
+      const payload = Array.isArray(body) ? body[0] : body?.row || body?.data || body;
+      const normalized = normalizeBotStatus(payload);
+      if (!normalized) {
+        return response(400, { error: "Payload must include bot status." });
+      }
+      const ingestUserId = normalizeName(body?.user_id) ||
+        normalizeName(process.env.INGEST_USER_ID) ||
+        "ingest-bot";
+      const userDb = await loadUserDb(ingestUserId);
+      userDb.botStatus = normalized;
+      await saveUserDb(ingestUserId, userDb);
+      await logAudit({
+        action: "bot_status",
+        status: "success",
+        user_id: ingestUserId,
+        role: "ingest"
+      });
+      return response(201, { ok: true, status: normalized });
+    }
+  }
+
   const authResult = await requireAuth(headers);
   if (authResult.error) {
     return authResult.error;
+  }
+
+  if (upperMethod === "POST" && (path === "/bot/status" || path === "/bot/heartbeat")) {
+    const payload = Array.isArray(body) ? body[0] : body?.row || body?.data || body;
+    const normalized = normalizeBotStatus(payload);
+    if (!normalized) {
+      return response(400, { error: "Payload must include bot status." });
+    }
+    const userDb = await loadUserDb(authResult.user_id);
+    userDb.botStatus = normalized;
+    await saveUserDb(authResult.user_id, userDb);
+    return response(201, { ok: true, status: normalized });
+  }
+
+  if (upperMethod === "GET" && path === "/bot/status") {
+    const userDb = await loadUserDb(authResult.user_id);
+    return response(200, { status: userDb.botStatus || null });
   }
 
   if (upperMethod === "GET" && path === "/auth/me") {
@@ -907,18 +1098,22 @@ export const createViteMiddleware = () => {
   return async (req, res, next) => {
     const url = new URL(req.url || "/", "http://localhost");
     const path = url.pathname;
+    const normalizedPath = path.startsWith("/v1/") ? path.slice(3) : path;
 
     if (
       !(
-        path.startsWith("/sheets") ||
-        path.startsWith("/schedule") ||
-        path.startsWith("/nurses") ||
-        path.startsWith("/data") ||
-        path.startsWith("/admin-api") ||
-        path.startsWith("/auth") ||
-        path.startsWith("/shift-types") ||
-        path.startsWith("/logs") ||
-        path.startsWith("/log")
+        normalizedPath.startsWith("/sheets") ||
+        normalizedPath.startsWith("/schedule") ||
+        normalizedPath.startsWith("/nurses") ||
+        normalizedPath.startsWith("/data") ||
+        normalizedPath.startsWith("/admin-api") ||
+        normalizedPath.startsWith("/auth") ||
+        normalizedPath.startsWith("/shift-types") ||
+        normalizedPath.startsWith("/logs") ||
+        normalizedPath.startsWith("/log") ||
+        normalizedPath.startsWith("/bot") ||
+        normalizedPath.startsWith("/portal-data") ||
+        normalizedPath.startsWith("/bot-data")
       )
     ) {
       next();
@@ -937,7 +1132,7 @@ export const createViteMiddleware = () => {
 
     const result = await handleApiRequest({
       method: req.method,
-      path,
+      path: normalizedPath,
       query: Object.fromEntries(url.searchParams.entries()),
       body,
       headers: req.headers

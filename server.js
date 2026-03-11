@@ -17,7 +17,10 @@ const apiPrefixes = [
   "/data",
   "/shift-types",
   "/logs",
-  "/log"
+  "/log",
+  "/bot",
+  "/portal-data",
+  "/bot-data"
 ];
 
 const contentTypes = {
@@ -187,13 +190,14 @@ const serveStatic = (req, res, pathname) => {
 const server = http.createServer(async (req, res) => {
   const url = new URL(req.url || "/", "http://localhost");
   const pathname = url.pathname || "/";
+  const normalizedPath = pathname.startsWith("/v1/") ? pathname.slice(3) : pathname;
 
-  if (pathname === "/contact" || pathname === "/api/contact") {
+  if (normalizedPath === "/contact" || normalizedPath === "/api/contact") {
     await handleContact(req, res);
     return;
   }
 
-  const isApiRoute = apiPrefixes.some((prefix) => pathname.startsWith(prefix));
+  const isApiRoute = apiPrefixes.some((prefix) => normalizedPath.startsWith(prefix));
   if (isApiRoute || req.method === "OPTIONS") {
     let body = null;
     try {
@@ -205,7 +209,7 @@ const server = http.createServer(async (req, res) => {
 
     const result = await handleApiRequest({
       method: req.method,
-      path: pathname,
+      path: normalizedPath,
       query: Object.fromEntries(url.searchParams.entries()),
       body,
       headers: req.headers

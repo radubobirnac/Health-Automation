@@ -7,6 +7,8 @@ import Security from "./pages/Security.jsx";
 import Login from "./pages/Login.jsx";
 import Signup from "./pages/Signup.jsx";
 import Dashboard from "./pages/Dashboard.jsx";
+import Logs from "./pages/Logs.jsx";
+import BotActive from "./pages/BotActive.jsx";
 import AdminCreateUser from "./pages/AdminCreateUser.jsx";
 import AdminLogin from "./pages/AdminLogin.jsx";
 import AdminGuard from "./components/AdminGuard.jsx";
@@ -30,12 +32,20 @@ export default function App() {
           element={<AuthGuard><Dashboard /></AuthGuard>}
         />
         <Route
+          path="/logs"
+          element={<AuthGuard><Logs /></AuthGuard>}
+        />
+        <Route
           path="/trusts-data"
           element={<AuthGuard><TrustsData /></AuthGuard>}
         />
         <Route
           path="/portal-data"
           element={<AuthGuard><TrustsData /></AuthGuard>}
+        />
+        <Route
+          path="/bot-active"
+          element={<AuthGuard><BotActive /></AuthGuard>}
         />
         <Route
           path="/admin"

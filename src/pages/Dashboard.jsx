@@ -1,24 +1,10 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import SchedulerGrid from "../components/SchedulerGrid.jsx";
-import SheetGrid from "../components/SheetGrid.jsx";
 import ShiftTypeManager from "../components/ShiftTypeManager.jsx";
 import { authedFetch } from "../utils/api.js";
 import { hasPortalAccess } from "../utils/rbac.js";
 import { getShiftClass } from "../utils/shiftClass.js";
-const LOG_COLUMNS = [
-  "Request ID",
-  "Nurse Name",
-  "Unit",
-  "Request Grade",
-  "Start Time",
-  "End Time",
-  "Date",
-  "Start Booking Time",
-  "Booked At",
-  "Validation Errors",
-  "Booked By"
-];
 
 const buildDateRange = (start, end) => {
   const dates = [];
@@ -147,22 +133,13 @@ export default function Dashboard() {
         const response = await authedFetch("/sheets");
         const payload = await response.json();
         const list = payload?.sheets || [];
-        const hasLogs = list.some((sheet) => (sheet.name || "").toLowerCase() === "logs");
-        const withLogs = hasLogs
-          ? list
-          : [
-              ...list,
-              {
-                sheet_id: "logs",
-                name: "Logs",
-                client_name: "",
-                created_at: ""
-              }
-            ];
-        setSheets(withLogs);
-        if (withLogs.length > 0) {
-          setActiveSheetId(withLogs[0].sheet_id);
-          setSheetName(withLogs[0].name);
+        const filtered = list.filter(
+          (sheet) => (sheet.name || "").toLowerCase() !== "logs" && sheet.sheet_id !== "logs"
+        );
+        setSheets(filtered);
+        if (filtered.length > 0) {
+          setActiveSheetId(filtered[0].sheet_id);
+          setSheetName(filtered[0].name);
         }
       } catch (error) {
         setStatus({ state: "idle", message: "" });
@@ -177,7 +154,6 @@ export default function Dashboard() {
   useEffect(() => {
     if (!activeSheetId || !startDate || !endDate || !userId) return;
     const active = sheets.find((sheet) => sheet.sheet_id === activeSheetId);
-    const isLogs = active?.sheet_id === "logs" || (active?.name || "").toLowerCase() === "logs";
     const cached = sheetCacheRef.current.get(activeSheetId);
     if (cached) {
       dataSheetIdRef.current = activeSheetId;
@@ -211,20 +187,12 @@ export default function Dashboard() {
         if (shouldApply) {
           dataSheetIdRef.current = activeSheetId;
           setSheetName(payload?.sheet?.name || "");
-          if (isLogs) {
-            setNurses(payload?.nurses || []);
-          } else {
-            setNurses(padRows(payload?.nurses || []));
-          }
+          setNurses(padRows(payload?.nurses || []));
           const nextMap = {};
-          if (!isLogs) {
-            (payload?.shifts || []).forEach((shift) => {
-              nextMap[`${shift.nurse_id}_${shift.date}`] = shift.shift;
-            });
-            setShifts(nextMap);
-          } else {
-            setShifts({});
-          }
+          (payload?.shifts || []).forEach((shift) => {
+            nextMap[`${shift.nurse_id}_${shift.date}`] = shift.shift;
+          });
+          setShifts(nextMap);
         }
         setStatus({ state: "success", message: "" });
       } catch (error) {
@@ -528,38 +496,9 @@ export default function Dashboard() {
   };
 
 
-  const ensureLogRowIds = (rows) => {
-    return rows.map((row) => (row?.id ? row : { id: createEmptyRow().id, ...row }));
-  };
-
-  const handleLogsRowsChange = (nextRows) => {
-    markLocalUpdate();
-    const withIds = ensureLogRowIds(nextRows);
-    setNurses(withIds);
-    saveNurses(withIds);
-  };
-
-  const handleLogsAddRow = () => {
-    markLocalUpdate();
-    const newRow = LOG_COLUMNS.reduce(
-      (acc, key) => ({ ...acc, [key]: "" }),
-      { id: createEmptyRow().id }
-    );
-    const next = [...nurses, newRow];
-    setNurses(next);
-    saveNurses([newRow]);
-  };
-
-
   const handleRename = async (overrideName) => {
     if (!activeSheetId) return;
     const active = sheets.find((sheet) => sheet.sheet_id === activeSheetId);
-    if (
-      active?.sheet_id === "logs" ||
-      (active?.name || "").toLowerCase() === "logs"
-    ) {
-      return;
-    }
     const previousName = active?.name ?? sheetName;
     const trimmed = (overrideName ?? sheetName).trim();
     if (!trimmed) return;
@@ -587,20 +526,6 @@ export default function Dashboard() {
   };
 
   const activeSheet = sheets.find((sheet) => sheet.sheet_id === activeSheetId);
-  const isLogsSheet =
-    activeSheet?.sheet_id === "logs" || (activeSheet?.name || "").toLowerCase() === "logs";
-  const orderedSheets = useMemo(() => {
-    if (!sheets.length) return sheets;
-    const logs = sheets.find(
-      (sheet) => sheet.sheet_id === "logs" || (sheet.name || "").toLowerCase() === "logs"
-    );
-    const rest = sheets.filter(
-      (sheet) => !(sheet.sheet_id === "logs" || (sheet.name || "").toLowerCase() === "logs")
-    );
-    if (!logs) return sheets;
-    if (rest.length === 0) return [logs];
-    return [rest[0], logs, ...rest.slice(1)];
-  }, [sheets]);
 
   if (!authChecked) {
     return (
@@ -649,7 +574,7 @@ export default function Dashboard() {
       <section className="section dashboard-section">
         <div className="container dashboard-container">
           <div className="sheet-tabs sheet-tabs--minimal">
-            {orderedSheets.map((sheet) => (
+            {sheets.map((sheet) => (
               <button
                 key={sheet.sheet_id}
                 type="button"
@@ -673,7 +598,7 @@ export default function Dashboard() {
                 <input
                   type="text"
                   value={sheetName}
-                  placeholder={isLogsSheet ? "Logs sheet (locked)" : "Enter sheet name"}
+                  placeholder="Enter sheet name"
                   onChange={(event) => setSheetName(event.target.value)}
                   onBlur={(event) => handleRename(event.target.value)}
                   onKeyDown={(event) => {
@@ -682,49 +607,32 @@ export default function Dashboard() {
                       event.currentTarget.blur();
                     }
                   }}
-                  disabled={isLogsSheet}
                 />
               </div>
-              {!isLogsSheet && (
-                <button
-                  className="btn btn-danger btn-sm"
-                  type="button"
-                  disabled={!selectedRowIds.length}
-                  onClick={handleDeleteSelectedRows}
-                >
-                  Delete Selected Rows
-                </button>
-              )}
-              {isLogsSheet && (
-                <button
-                  className="btn btn-danger btn-sm"
-                  type="button"
-                  disabled={!selectedRowIds.length}
-                  onClick={handleDeleteSelectedRows}
-                >
-                  Delete Selected Rows
-                </button>
-              )}
+              <button
+                className="btn btn-danger btn-sm"
+                type="button"
+                disabled={!selectedRowIds.length}
+                onClick={handleDeleteSelectedRows}
+              >
+                Delete Selected Rows
+              </button>
             </div>
             <div className="action-bar-right">
-              {!isLogsSheet && (
-                <button
-                  className="btn btn-outline btn-sm"
-                  type="button"
-                  onClick={() => setShowShiftManager(true)}
-                >
-                  Edit Shift Types
-                </button>
-              )}
-              {!isLogsSheet && (
-                <button
-                  className="btn btn-outline btn-sm"
-                  type="button"
-                  onClick={handleDuplicateSheet}
-                >
-                  Duplicate Sheet
-                </button>
-              )}
+              <button
+                className="btn btn-outline btn-sm"
+                type="button"
+                onClick={() => setShowShiftManager(true)}
+              >
+                Edit Shift Types
+              </button>
+              <button
+                className="btn btn-outline btn-sm"
+                type="button"
+                onClick={handleDuplicateSheet}
+              >
+                Duplicate Sheet
+              </button>
               <div className="menu-wrap" ref={menuRef}>
                 <button
                   className="btn btn-outline btn-sm ellipsis-btn"
@@ -748,7 +656,6 @@ export default function Dashboard() {
                     <button
                       type="button"
                       className="menu-item menu-item--danger"
-                      disabled={isLogsSheet}
                       onClick={() => {
                         setIsMenuOpen(false);
                         setShowDeleteConfirm(true);
@@ -762,7 +669,7 @@ export default function Dashboard() {
             </div>
           </div>
 
-          {!isLogsSheet && shiftTypes.length > 0 && (
+          {shiftTypes.length > 0 && (
             <div className="shift-legend">
               <span className="shift-legend-label">Shift Legend</span>
               {shiftTypes.map((type) => (
@@ -775,34 +682,21 @@ export default function Dashboard() {
 
           <div className="dashboard-grid">
             <div>
-              {isLogsSheet ? (
-                <SheetGrid
-                  columns={LOG_COLUMNS}
-                  rows={nurses}
-                  onRowsChange={handleLogsRowsChange}
-                  showControls={false}
-                  variant="logs"
-                  enableSelection
-                  selectedRowIds={selectedRowIds}
-                  onToggleRow={handleToggleRow}
-                />
-              ) : (
-                <SchedulerGrid
-                  nurses={nurses}
-                  dates={dates}
-                  shifts={shifts}
-                  shiftTypes={shiftTypes}
-                  onShiftChange={handleShiftChange}
-                  onBulkShiftChange={handleBulkShiftChange}
-                  onNurseChange={handleNurseChange}
-                  onBulkNurseChange={handleBulkNurseChange}
-                  onNurseCommit={handleNurseCommit}
-                  onBulkNurseCommit={handleBulkNurseCommit}
-                  onEnsureRows={handleEnsureRows}
-                  selectedRowIds={selectedRowIds}
-                  onToggleRow={handleToggleRow}
-                />
-              )}
+              <SchedulerGrid
+                nurses={nurses}
+                dates={dates}
+                shifts={shifts}
+                shiftTypes={shiftTypes}
+                onShiftChange={handleShiftChange}
+                onBulkShiftChange={handleBulkShiftChange}
+                onNurseChange={handleNurseChange}
+                onBulkNurseChange={handleBulkNurseChange}
+                onNurseCommit={handleNurseCommit}
+                onBulkNurseCommit={handleBulkNurseCommit}
+                onEnsureRows={handleEnsureRows}
+                selectedRowIds={selectedRowIds}
+                onToggleRow={handleToggleRow}
+              />
             </div>
           </div>
         </div>
