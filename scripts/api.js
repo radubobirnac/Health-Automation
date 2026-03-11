@@ -560,6 +560,7 @@ export const handleApiRequest = async ({ method, path, query = {}, body, headers
         return ingestAuth.error;
       }
       const ingestUserId = normalizeName(body?.user_id) ||
+        normalizeName(process.env.API_SECRET_USER_ID) ||
         normalizeName(process.env.INGEST_USER_ID) ||
         "ingest-bot";
       const userDb = await loadUserDb(ingestUserId);
@@ -621,6 +622,7 @@ export const handleApiRequest = async ({ method, path, query = {}, body, headers
       const secretUserId =
         normalizeName(body?.user_id) ||
         normalizeName(query?.user_id) ||
+        normalizeName(process.env.API_SECRET_USER_ID) ||
         normalizeName(process.env.INGEST_USER_ID) ||
         "ingest-bot";
 
@@ -744,6 +746,7 @@ export const handleApiRequest = async ({ method, path, query = {}, body, headers
         return response(400, { error: "Payload must include bot status." });
       }
       const ingestUserId = normalizeName(body?.user_id) ||
+        normalizeName(process.env.API_SECRET_USER_ID) ||
         normalizeName(process.env.INGEST_USER_ID) ||
         "ingest-bot";
       const userDb = await loadUserDb(ingestUserId);

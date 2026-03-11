@@ -77,7 +77,7 @@ export default function Layout({ children }) {
               <>
                 <Link to="/app" className={location.pathname === "/app" ? "nav-active" : ""} aria-current={location.pathname === "/app" ? "page" : undefined}>Dashboard</Link>
                 <Link to="/logs" className={location.pathname === "/logs" ? "nav-active" : ""} aria-current={location.pathname === "/logs" ? "page" : undefined}>Logs</Link>
-                {canAccessPortal && (
+                {isAuthed && canAccessPortal && (
                   <Link to="/portal-data" className={location.pathname === "/portal-data" ? "nav-active" : ""} aria-current={location.pathname === "/portal-data" ? "page" : undefined}>Portal Data</Link>
                 )}
                 <Link to="/bot-active" className={location.pathname === "/bot-active" ? "nav-active" : ""} aria-current={location.pathname === "/bot-active" ? "page" : undefined}>Bot Active</Link>
@@ -88,9 +88,6 @@ export default function Layout({ children }) {
                 <Link to="/about" className={location.pathname === "/about" ? "nav-active" : ""} aria-current={location.pathname === "/about" ? "page" : undefined}>About</Link>
                 <Link to="/contact" className={location.pathname === "/contact" ? "nav-active" : ""} aria-current={location.pathname === "/contact" ? "page" : undefined}>Contact</Link>
                 <Link to="/security" className={location.pathname === "/security" ? "nav-active" : ""} aria-current={location.pathname === "/security" ? "page" : undefined}>Security</Link>
-                {canAccessPortal && (
-                  <Link to="/portal-data" className={location.pathname === "/portal-data" ? "nav-active" : ""} aria-current={location.pathname === "/portal-data" ? "page" : undefined}>Portal Data</Link>
-                )}
                 <Link to="/login" className={location.pathname === "/login" ? "nav-active" : ""} aria-current={location.pathname === "/login" ? "page" : undefined}>Client Portal</Link>
               </>
             )}
@@ -202,7 +199,7 @@ export default function Layout({ children }) {
             <>
               <Link to="/app" className={location.pathname === "/app" ? "nav-active" : ""}>Dashboard</Link>
               <Link to="/logs" className={location.pathname === "/logs" ? "nav-active" : ""}>Logs</Link>
-              {canAccessPortal && (
+              {isAuthed && canAccessPortal && (
                 <Link to="/portal-data" className={location.pathname === "/portal-data" ? "nav-active" : ""}>Portal Data</Link>
               )}
               <Link to="/bot-active" className={location.pathname === "/bot-active" ? "nav-active" : ""}>Bot Active</Link>
@@ -213,9 +210,6 @@ export default function Layout({ children }) {
               <Link to="/about" className={location.pathname === "/about" ? "nav-active" : ""}>About</Link>
               <Link to="/contact" className={location.pathname === "/contact" ? "nav-active" : ""}>Contact</Link>
               <Link to="/security" className={location.pathname === "/security" ? "nav-active" : ""}>Security</Link>
-              {canAccessPortal && (
-                <Link to="/portal-data" className={location.pathname === "/portal-data" ? "nav-active" : ""}>Portal Data</Link>
-              )}
               <Link to="/login" className={location.pathname === "/login" ? "nav-active" : ""}>Client Portal</Link>
             </>
           )}
