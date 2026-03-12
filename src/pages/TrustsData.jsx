@@ -29,11 +29,12 @@ export default function TrustsData() {
   const [status, setStatus] = useState({ state: "loading", message: "Loading data..." });
   const [query, setQuery] = useState("");
   const navigate = useNavigate();
+  const POLL_INTERVAL_MS = 3000;
 
   useEffect(() => {
     let isActive = true;
 
-    const load = async () => {
+    const load = async (options = {}) => {
       try {
         const response = await authedFetch("/data/rows");
         if (!response.ok) {
@@ -42,10 +43,14 @@ export default function TrustsData() {
         const payload = await response.json();
         if (!isActive) return;
         setRows(payload?.rows || []);
-        setStatus({ state: "success", message: "" });
+        if (!options.silent) {
+          setStatus({ state: "success", message: "" });
+        }
       } catch (error) {
         if (!isActive) return;
-        setStatus({ state: "error", message: "Unable to load Trusts Data." });
+        if (!options.silent) {
+          setStatus({ state: "error", message: "Unable to load Trusts Data." });
+        }
         if (error.message === "Unauthorized") {
           navigate("/login");
         }
@@ -53,8 +58,13 @@ export default function TrustsData() {
     };
 
     load();
+    const intervalId = setInterval(() => {
+      if (document.visibilityState === "hidden") return;
+      load({ silent: true });
+    }, POLL_INTERVAL_MS);
     return () => {
       isActive = false;
+      clearInterval(intervalId);
     };
   }, [navigate]);
 

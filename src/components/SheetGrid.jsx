@@ -18,11 +18,13 @@ export default function SheetGrid({
   onRowsChange,
   showControls = true,
   variant = "",
+  readOnly = false,
   enableSelection = false,
   selectedRowIds = [],
   onToggleRow
 }) {
   const handleChange = (rowIndex, key, value) => {
+    if (readOnly || typeof onRowsChange !== "function") return;
     const next = rows.map((row, idx) =>
       idx === rowIndex ? { ...row, [key]: value } : row
     );
@@ -50,6 +52,7 @@ export default function SheetGrid({
   };
 
   const handleAddRow = () => {
+    if (readOnly || typeof onRowsChange !== "function") return;
     const newRow = columns.reduce((acc, key) => {
       acc[key] = "";
       return acc;
@@ -73,6 +76,7 @@ export default function SheetGrid({
   };
 
   const handlePaste = (rowIndex, colIndex, text) => {
+    if (readOnly || typeof onRowsChange !== "function") return;
     const lines = text.replace(/\r/g, "").split("\n").filter((line) => line.length);
     if (lines.length === 0) return;
 
@@ -97,7 +101,7 @@ export default function SheetGrid({
 
   return (
     <div className={cardClassName}>
-      {showControls && (
+      {showControls && !readOnly && (
         <div className="sheet-actions">
           <button className="btn btn-outline" type="button" onClick={handleAddRow}>
             Add row
@@ -138,10 +142,12 @@ export default function SheetGrid({
                         className={isInvalid(row, column) ? "cell-invalid" : ""}
                         type="text"
                         value={row[column] ?? ""}
+                        readOnly={readOnly}
                         onChange={(event) =>
                           handleChange(rowIndex, column, event.target.value)
                         }
                         onPaste={(event) => {
+                          if (readOnly) return;
                           const pasteText = event.clipboardData.getData("text");
                           if (pasteText.includes("\n") || pasteText.includes("\t")) {
                             event.preventDefault();

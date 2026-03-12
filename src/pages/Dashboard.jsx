@@ -77,6 +77,8 @@ export default function Dashboard() {
   const [userId, setUserId] = useState("");
   const [authChecked, setAuthChecked] = useState(false);
   const navigate = useNavigate();
+  const isMountedRef = useRef(true);
+  const POLL_INTERVAL_MS = 3000;
 
 
   const markLocalUpdate = () => {
@@ -90,6 +92,12 @@ export default function Dashboard() {
     lastServerSyncRef.current[sheetId] = Date.now();
   };
   //useeffect 
+
+  useEffect(() => {
+    return () => {
+      isMountedRef.current = false;
+    };
+  }, []);
 
   useEffect(() => {
     let isActive = true;
@@ -127,6 +135,49 @@ export default function Dashboard() {
     };
   }, [navigate]);
 
+  const fetchSchedule = async (options = {}) => {
+    if (!activeSheetId || !startDate || !endDate || !userId) return;
+    const fetchStartedAt = Date.now();
+    if (!options.silent) {
+      setStatus({ state: "loading", message: "Loading schedule..." });
+    }
+    try {
+      const response = await authedFetch(
+        `/schedule?start=${startDate}&end=${endDate}&sheet_id=${activeSheetId}`,
+        options.signal ? { signal: options.signal } : undefined
+      );
+      if (!response.ok) {
+        throw new Error("Schedule unavailable");
+      }
+      const payload = await response.json();
+      if (!isMountedRef.current) return;
+      const lastLocalUpdate = lastLocalUpdateRef.current[activeSheetId];
+      const lastServerSync = lastServerSyncRef.current[activeSheetId];
+      const hasUnsyncedChanges =
+        lastLocalUpdate && (!lastServerSync || lastServerSync < lastLocalUpdate);
+      const shouldApply =
+        !hasUnsyncedChanges && (!lastLocalUpdate || lastLocalUpdate <= fetchStartedAt);
+      if (shouldApply) {
+        dataSheetIdRef.current = activeSheetId;
+        setSheetName(payload?.sheet?.name || "");
+        setNurses(padRows(payload?.nurses || []));
+        const nextMap = {};
+        (payload?.shifts || []).forEach((shift) => {
+          nextMap[`${shift.nurse_id}_${shift.date}`] = shift.shift;
+        });
+        setShifts(nextMap);
+      }
+      if (!options.silent) {
+        setStatus({ state: "success", message: "" });
+      }
+    } catch (error) {
+      if (!isMountedRef.current || error.name === "AbortError") return;
+      if (!options.silent) {
+        setStatus({ state: "error", message: "Unable to load schedule." });
+      }
+    }
+  };
+
   useEffect(() => {
     const fetchSheets = async () => {
       try {
@@ -153,7 +204,6 @@ export default function Dashboard() {
 
   useEffect(() => {
     if (!activeSheetId || !startDate || !endDate || !userId) return;
-    const active = sheets.find((sheet) => sheet.sheet_id === activeSheetId);
     const cached = sheetCacheRef.current.get(activeSheetId);
     if (cached) {
       dataSheetIdRef.current = activeSheetId;
@@ -163,50 +213,22 @@ export default function Dashboard() {
         setSheetName(cached.sheetName);
       }
     }
-    const fetchStartedAt = Date.now();
     const controller = new AbortController();
-    let isCurrent = true;
-    const fetchSchedule = async () => {
-      setStatus({ state: "loading", message: "Loading schedule..." });
-      try {
-        const response = await authedFetch(
-          `/schedule?start=${startDate}&end=${endDate}&sheet_id=${activeSheetId}`,
-          { signal: controller.signal }
-        );
-        if (!response.ok) {
-          throw new Error("Schedule unavailable");
-        }
-        const payload = await response.json();
-        if (!isCurrent) return;
-        const lastLocalUpdate = lastLocalUpdateRef.current[activeSheetId];
-        const lastServerSync = lastServerSyncRef.current[activeSheetId];
-        const hasUnsyncedChanges =
-          lastLocalUpdate && (!lastServerSync || lastServerSync < lastLocalUpdate);
-        const shouldApply =
-          !hasUnsyncedChanges && (!lastLocalUpdate || lastLocalUpdate <= fetchStartedAt);
-        if (shouldApply) {
-          dataSheetIdRef.current = activeSheetId;
-          setSheetName(payload?.sheet?.name || "");
-          setNurses(padRows(payload?.nurses || []));
-          const nextMap = {};
-          (payload?.shifts || []).forEach((shift) => {
-            nextMap[`${shift.nurse_id}_${shift.date}`] = shift.shift;
-          });
-          setShifts(nextMap);
-        }
-        setStatus({ state: "success", message: "" });
-      } catch (error) {
-        if (!isCurrent || error.name === "AbortError") return;
-        setStatus({ state: "error", message: "Unable to load schedule." });
-      }
-    };
-
-    fetchSchedule();
+    fetchSchedule({ signal: controller.signal });
     return () => {
-      isCurrent = false;
       controller.abort();
     };
   }, [activeSheetId, startDate, endDate, userId, sheets]);
+
+  useEffect(() => {
+    if (!activeSheetId || !startDate || !endDate || !userId) return;
+    const tick = () => {
+      if (document.visibilityState === "hidden") return;
+      fetchSchedule({ silent: true });
+    };
+    const intervalId = setInterval(tick, POLL_INTERVAL_MS);
+    return () => clearInterval(intervalId);
+  }, [activeSheetId, startDate, endDate, userId]);
 
   useEffect(() => {
     if (!userId) return;

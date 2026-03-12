@@ -328,9 +328,19 @@ const normalizeLogRow = (row) => {
 
 const normalizeBotStatus = (payload) => {
   if (!payload || typeof payload !== "object") return null;
+  const teamName = normalizeName(
+    payload.team_name || payload.team || payload.AMteamName || payload.bot_name || payload.bot_id
+  ) || "Unknown Bot";
+  const botId = normalizeName(
+    payload.bot_id || payload.team_id || payload.team || payload.AMteamName || teamName
+  ).toLowerCase() || "unknown";
+  const timestamp = new Date().toISOString();
   return {
     ...payload,
-    received_at: new Date().toISOString()
+    team_name: teamName,
+    bot_id: botId,
+    last_reported_at: timestamp,
+    received_at: timestamp
   };
 };
 
@@ -750,6 +760,8 @@ export const handleApiRequest = async ({ method, path, query = {}, body, headers
         normalizeName(process.env.INGEST_USER_ID) ||
         "ingest-bot";
       const userDb = await loadUserDb(ingestUserId);
+      userDb.botStatuses = userDb.botStatuses || {};
+      userDb.botStatuses[normalized.bot_id] = normalized;
       userDb.botStatus = normalized;
       await saveUserDb(ingestUserId, userDb);
       await logAudit({
@@ -774,6 +786,8 @@ export const handleApiRequest = async ({ method, path, query = {}, body, headers
       return response(400, { error: "Payload must include bot status." });
     }
     const userDb = await loadUserDb(authResult.user_id);
+    userDb.botStatuses = userDb.botStatuses || {};
+    userDb.botStatuses[normalized.bot_id] = normalized;
     userDb.botStatus = normalized;
     await saveUserDb(authResult.user_id, userDb);
     return response(201, { ok: true, status: normalized });
@@ -781,7 +795,17 @@ export const handleApiRequest = async ({ method, path, query = {}, body, headers
 
   if (upperMethod === "GET" && path === "/bot/status") {
     const userDb = await loadUserDb(authResult.user_id);
-    return response(200, { status: userDb.botStatus || null });
+    const list = Object.values(userDb.botStatuses || {});
+    if (!list.length && userDb.botStatus) {
+      list.push(userDb.botStatus);
+    }
+    const latest = list.reduce((acc, item) => {
+      if (!item) return acc;
+      const accTime = new Date(acc?.last_reported_at || acc?.received_at || 0).getTime();
+      const itemTime = new Date(item?.last_reported_at || item?.received_at || 0).getTime();
+      return itemTime > accTime ? item : acc;
+    }, null);
+    return response(200, { status: latest || null, statuses: list });
   }
 
   if (upperMethod === "GET" && path === "/auth/me") {

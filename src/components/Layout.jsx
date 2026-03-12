@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
-import { hasStoredPortalAccess } from "../utils/rbac.js";
+import { hasStoredAdminAccess, hasStoredPortalAccess } from "../utils/rbac.js";
 
 const THEME_STORAGE_KEY = "hr_theme";
 
@@ -16,6 +16,7 @@ export default function Layout({ children }) {
   const location = useLocation();
   const isAuthed = useMemo(() => Boolean(localStorage.getItem("hr_token")), [location.pathname]);
   const canAccessPortal = useMemo(() => hasStoredPortalAccess(), [location.pathname]);
+  const isAdmin = useMemo(() => hasStoredAdminAccess(), [location.pathname]);
   const isAppRoute =
     location.pathname.startsWith("/app") ||
     location.pathname.startsWith("/logs") ||
@@ -80,7 +81,9 @@ export default function Layout({ children }) {
                 {isAuthed && canAccessPortal && (
                   <Link to="/portal-data" className={location.pathname === "/portal-data" ? "nav-active" : ""} aria-current={location.pathname === "/portal-data" ? "page" : undefined}>Portal Data</Link>
                 )}
-                <Link to="/bot-active" className={location.pathname === "/bot-active" ? "nav-active" : ""} aria-current={location.pathname === "/bot-active" ? "page" : undefined}>Bot Active</Link>
+                {isAdmin && (
+                  <Link to="/bot-active" className={location.pathname === "/bot-active" ? "nav-active" : ""} aria-current={location.pathname === "/bot-active" ? "page" : undefined}>Bot Status</Link>
+                )}
               </>
             ) : (
               <>
@@ -202,7 +205,9 @@ export default function Layout({ children }) {
               {isAuthed && canAccessPortal && (
                 <Link to="/portal-data" className={location.pathname === "/portal-data" ? "nav-active" : ""}>Portal Data</Link>
               )}
-              <Link to="/bot-active" className={location.pathname === "/bot-active" ? "nav-active" : ""}>Bot Active</Link>
+              {isAdmin && (
+                <Link to="/bot-active" className={location.pathname === "/bot-active" ? "nav-active" : ""}>Bot Status</Link>
+              )}
             </>
           ) : (
             <>

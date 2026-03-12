@@ -12,12 +12,12 @@ const createEmptyRowId = () =>
 
 export default function Logs() {
   const [rows, setRows] = useState([]);
-  const [selectedRowIds, setSelectedRowIds] = useState([]);
   const [status, setStatus] = useState({ state: "loading", message: "Loading logs..." });
   const [authChecked, setAuthChecked] = useState(false);
   const [userId, setUserId] = useState("");
   const logsSheetIdRef = useRef(null);
   const navigate = useNavigate();
+  const POLL_INTERVAL_MS = 3000;
 
   useEffect(() => {
     let isActive = true;
@@ -52,9 +52,11 @@ export default function Logs() {
   const ensureRowIds = (nextRows) =>
     nextRows.map((row) => (row?.id ? row : { id: createEmptyRowId(), ...row }));
 
-  const fetchLogs = async () => {
+  const fetchLogs = async (options = {}) => {
     if (!userId) return;
-    setStatus({ state: "loading", message: "Loading logs..." });
+    if (!options.silent) {
+      setStatus({ state: "loading", message: "Loading logs..." });
+    }
     try {
       const sheetsRes = await authedFetch("/sheets");
       const sheetsPayload = await sheetsRes.json();
@@ -76,9 +78,13 @@ export default function Logs() {
       }
       const payload = await scheduleRes.json();
       setRows(ensureRowIds(payload?.nurses || []));
-      setStatus({ state: "success", message: "" });
+      if (!options.silent) {
+        setStatus({ state: "success", message: "" });
+      }
     } catch (error) {
-      setStatus({ state: "error", message: "Unable to load logs." });
+      if (!options.silent) {
+        setStatus({ state: "error", message: "Unable to load logs." });
+      }
     }
   };
 
@@ -86,53 +92,17 @@ export default function Logs() {
     fetchLogs();
   }, [userId]);
 
-  const handleRowsChange = (nextRows) => {
-    const withIds = ensureRowIds(nextRows);
-    setRows(withIds);
-    saveRows(withIds);
-  };
-
-  const saveRows = async (nextRows) => {
-    const sheetId = logsSheetIdRef.current;
-    if (!sheetId || !nextRows?.length) return;
-    try {
-      await authedFetch("/nurses/upsert", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ sheet_id: sheetId, nurses: nextRows })
-      });
-    } catch (error) {
-      setStatus({ state: "error", message: "Failed to save log updates." });
-    }
-  };
-
-  const handleToggleRow = (rowId) => {
-    setSelectedRowIds((prev) => {
-      if (prev.includes(rowId)) {
-        return prev.filter((id) => id !== rowId);
-      }
-      return [...prev, rowId];
-    });
-  };
-
-  const handleDeleteSelectedRows = async () => {
-    const sheetId = logsSheetIdRef.current;
-    if (!sheetId || selectedRowIds.length === 0) return;
-    const selected = new Set(selectedRowIds);
-    setRows((prev) => prev.filter((row) => !selected.has(row.id)));
-    setSelectedRowIds([]);
-    try {
-      await authedFetch("/nurses/delete", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ sheet_id: sheetId, nurse_ids: Array.from(selected) })
-      });
-    } catch (error) {
-      setStatus({ state: "error", message: "Failed to delete selected logs." });
-    }
-  };
-
   const logsCount = useMemo(() => rows.length, [rows.length]);
+
+  useEffect(() => {
+    if (!userId) return;
+    const tick = () => {
+      if (document.visibilityState === "hidden") return;
+      fetchLogs({ silent: true });
+    };
+    const intervalId = setInterval(tick, POLL_INTERVAL_MS);
+    return () => clearInterval(intervalId);
+  }, [userId]);
 
   if (!authChecked) {
     return (
@@ -164,16 +134,6 @@ export default function Logs() {
       <section className="section dashboard-section">
         <div className="container dashboard-container">
           <div className="action-bar minimal">
-            <div className="action-bar-left">
-              <button
-                className="btn btn-danger btn-sm"
-                type="button"
-                disabled={!selectedRowIds.length}
-                onClick={handleDeleteSelectedRows}
-              >
-                Delete Selected Rows
-              </button>
-            </div>
             <div className="action-bar-right">
               <button className="btn btn-outline btn-sm" type="button" onClick={fetchLogs}>
                 Refresh Logs
@@ -186,12 +146,9 @@ export default function Logs() {
               <SheetGrid
                 columns={LOG_COLUMNS}
                 rows={rows}
-                onRowsChange={handleRowsChange}
                 showControls={false}
                 variant="logs"
-                enableSelection
-                selectedRowIds={selectedRowIds}
-                onToggleRow={handleToggleRow}
+                readOnly
               />
             </div>
           </div>

@@ -45,7 +45,7 @@ export default function App() {
         />
         <Route
           path="/bot-active"
-          element={<AuthGuard><BotActive /></AuthGuard>}
+          element={<AdminGuard><BotActive /></AdminGuard>}
         />
         <Route
           path="/admin"
