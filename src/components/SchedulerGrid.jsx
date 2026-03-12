@@ -31,7 +31,9 @@ export default function SchedulerGrid({
   onToggleRow,
   onNurseCommit,
   onBulkNurseCommit,
-  onEnsureRows
+  onEnsureRows,
+  selectedCellId = null,
+  onCellSelect
 }) {
   const dateKeys = useMemo(
     () => dates.map((date) => date.toISOString().slice(0, 10)),
@@ -269,6 +271,24 @@ export default function SchedulerGrid({
                               onNurseChange?.(nurse.id, col.key, event.target.value)
                             }
                             onBlur={() => onNurseCommit?.(nurse)}
+                            onClick={() => {
+                              if (!onCellSelect) return;
+                              onCellSelect({
+                                id: `${nurse.id}::${col.key}`,
+                                rowId: nurse.id,
+                                column: col.key,
+                                value: nurse[col.key] ?? ""
+                              });
+                            }}
+                            onFocus={() => {
+                              if (!onCellSelect) return;
+                              onCellSelect({
+                                id: `${nurse.id}::${col.key}`,
+                                rowId: nurse.id,
+                                column: col.key,
+                                value: nurse[col.key] ?? ""
+                              });
+                            }}
                             onPaste={(event) => {
                               const pasteText = event.clipboardData.getData("text");
                               if (pasteText.includes("\n") || pasteText.includes("\t")) {
@@ -276,6 +296,7 @@ export default function SchedulerGrid({
                                 handleLeftPaste(rowIndex, colIndex, pasteText);
                               }
                             }}
+                            data-selected={selectedCellId === `${nurse.id}::${col.key}`}
                           />
                         </td>
                       ))}

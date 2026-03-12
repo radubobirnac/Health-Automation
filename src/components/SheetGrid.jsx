@@ -19,6 +19,9 @@ export default function SheetGrid({
   showControls = true,
   variant = "",
   readOnly = false,
+  selectedCellId = null,
+  onCellSelect,
+  tableWrapperClassName = "",
   enableSelection = false,
   selectedRowIds = [],
   onToggleRow
@@ -109,7 +112,7 @@ export default function SheetGrid({
           <span className="sheet-meta">Live validation enabled</span>
         </div>
       )}
-      <div className="sheet-table-wrapper">
+      <div className={`sheet-table-wrapper${tableWrapperClassName ? ` ${tableWrapperClassName}` : ""}`}>
         <table className="sheet-table">
           <thead>
             <tr>
@@ -146,6 +149,26 @@ export default function SheetGrid({
                         onChange={(event) =>
                           handleChange(rowIndex, column, event.target.value)
                         }
+                        onClick={() => {
+                          if (!onCellSelect) return;
+                          const rowId = row?.id ?? `row-${rowIndex}`;
+                          onCellSelect({
+                            id: `${rowId}::${column}`,
+                            rowId,
+                            column,
+                            value: row[column] ?? ""
+                          });
+                        }}
+                        onFocus={() => {
+                          if (!onCellSelect) return;
+                          const rowId = row?.id ?? `row-${rowIndex}`;
+                          onCellSelect({
+                            id: `${rowId}::${column}`,
+                            rowId,
+                            column,
+                            value: row[column] ?? ""
+                          });
+                        }}
                         onPaste={(event) => {
                           if (readOnly) return;
                           const pasteText = event.clipboardData.getData("text");
@@ -154,6 +177,9 @@ export default function SheetGrid({
                             handlePaste(rowIndex, colIndex, pasteText);
                           }
                         }}
+                        data-selected={
+                          selectedCellId === `${row?.id ?? `row-${rowIndex}`}::${column}`
+                        }
                       />
                     </td>
                   );

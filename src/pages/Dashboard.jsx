@@ -79,6 +79,8 @@ export default function Dashboard() {
   const navigate = useNavigate();
   const isMountedRef = useRef(true);
   const POLL_INTERVAL_MS = 3000;
+  const [selectedCell, setSelectedCell] = useState(null);
+  const [viewerText, setViewerText] = useState("");
 
 
   const markLocalUpdate = () => {
@@ -297,6 +299,28 @@ export default function Dashboard() {
       markServerSync(sheetId);
     } catch (error) {
       setStatus({ state: "error", message: "Failed to save shift." });
+    }
+  };
+
+  const handleCellSelect = (cell) => {
+    if (!cell) return;
+    setSelectedCell(cell);
+    setViewerText(cell.value ?? "");
+  };
+
+  const handleViewerChange = (event) => {
+    const nextValue = event.target.value;
+    setViewerText(nextValue);
+    if (!selectedCell) return;
+    handleNurseChange(selectedCell.rowId, selectedCell.column, nextValue);
+  };
+
+  const handleCopyViewerText = async () => {
+    if (!viewerText) return;
+    try {
+      await navigator.clipboard.writeText(viewerText);
+    } catch {
+      // ignore clipboard errors
     }
   };
 
@@ -567,6 +591,13 @@ export default function Dashboard() {
             <div className="page-header-copy">
               <div className="page-title">Shift Monitoring - {sheetName}</div>
               <p className="page-desc">Manage weekly shift assignments.</p>
+              <textarea
+                className="text-viewer-input"
+                placeholder="Selected field text will appear here"
+                value={viewerText}
+                onChange={handleViewerChange}
+                rows={2}
+              />
             </div>
             <div className="page-header-actions compact">
               <div className="date-range">
@@ -718,6 +749,8 @@ export default function Dashboard() {
                 onEnsureRows={handleEnsureRows}
                 selectedRowIds={selectedRowIds}
                 onToggleRow={handleToggleRow}
+                selectedCellId={selectedCell?.id ?? null}
+                onCellSelect={handleCellSelect}
               />
             </div>
           </div>

@@ -162,12 +162,12 @@ const getBearerToken = (headers) => {
 
 const getJwtSecret = () => process.env.AUTH_JWT_SECRET || "";
 
-const signToken = (payload) => {
+const signToken = (payload, expiresIn = "7d") => {
   const secret = getJwtSecret();
   if (!secret) {
     throw new Error("AUTH_JWT_SECRET not set");
   }
-  return jwt.sign(payload, secret, { expiresIn: "7d" });
+  return jwt.sign(payload, secret, { expiresIn });
 };
 
 const verifyToken = (token) => {
@@ -410,11 +410,14 @@ export const handleApiRequest = async ({ method, path, query = {}, body, headers
     if (isBootstrapAdmin) {
       const adminName = bootstrapUsername;
       const adminId = `bootstrap-${bootstrapUsername}`;
-      const token = signToken({
+      const token = signToken(
+        {
         sub: adminId,
         username: adminName,
         role: "admin"
-      });
+        },
+        "7d"
+      );
       return response(200, {
         token,
         username: adminName,
@@ -430,11 +433,14 @@ export const handleApiRequest = async ({ method, path, query = {}, body, headers
       return response(401, { error: "Invalid username or password." });
     }
     try {
-      const token = signToken({
+      const token = signToken(
+        {
         sub: authUser.user_id,
         username: authUser.username,
         role: authUser.role || "client"
-      });
+        },
+        authUser.role === "admin" ? "7d" : "5d"
+      );
       return response(200, {
         token,
         username: authUser.username,

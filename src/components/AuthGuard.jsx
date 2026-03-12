@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { authedFetch } from "../utils/api.js";
 import { hasPortalAccess } from "../utils/rbac.js";
+import { clearClientSession, isClientSessionExpired } from "../utils/session.js";
 
 export default function AuthGuard({ children }) {
   const [allowed, setAllowed] = useState(false);
@@ -17,6 +18,13 @@ export default function AuthGuard({ children }) {
         navigate("/login");
         return;
       }
+      if (isClientSessionExpired()) {
+        clearClientSession();
+        localStorage.removeItem("hr_token");
+        localStorage.removeItem("hr_auth");
+        navigate("/login");
+        return;
+      }
 
       try {
         const response = await authedFetch("/auth/me");
@@ -28,12 +36,14 @@ export default function AuthGuard({ children }) {
         if (hasPortalAccess(payload?.role)) {
           setAllowed(true);
         } else {
+          clearClientSession();
           localStorage.removeItem("hr_token");
           localStorage.removeItem("hr_auth");
           navigate("/login");
         }
       } catch (error) {
         if (!isActive) return;
+        clearClientSession();
         localStorage.removeItem("hr_token");
         localStorage.removeItem("hr_auth");
         navigate("/login");

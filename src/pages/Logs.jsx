@@ -123,9 +123,14 @@ export default function Logs() {
               <div className="page-title">Logs</div>
               <p className="page-desc">Activity logs for booking actions.</p>
             </div>
-            <div className="page-header-actions compact">
+            <div className="page-header-actions compact logs-header-actions">
               <span className="status-pill">{logsCount} entries</span>
               {status.message && <span className="status-pill">{status.message}</span>}
+              <div className="logs-refresh-row">
+                <button className="btn btn-outline btn-sm" type="button" onClick={fetchLogs}>
+                  Refresh Logs
+                </button>
+              </div>
             </div>
           </div>
         </div>
@@ -133,14 +138,6 @@ export default function Logs() {
 
       <section className="section dashboard-section">
         <div className="container dashboard-container">
-          <div className="action-bar minimal">
-            <div className="action-bar-right">
-              <button className="btn btn-outline btn-sm" type="button" onClick={fetchLogs}>
-                Refresh Logs
-              </button>
-            </div>
-          </div>
-
           <div className="dashboard-grid">
             <div>
               <SheetGrid
@@ -149,6 +146,7 @@ export default function Logs() {
                 showControls={false}
                 variant="logs"
                 readOnly
+                tableWrapperClassName="logs-table-wrapper"
               />
             </div>
           </div>

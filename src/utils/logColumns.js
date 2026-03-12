@@ -8,6 +8,5 @@ export const LOG_COLUMNS = [
   "Date",
   "Start Booking Time",
   "Booked At",
-  "Validation Errors",
   "Booked By"
 ];

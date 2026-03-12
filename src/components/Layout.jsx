@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { hasStoredAdminAccess, hasStoredPortalAccess } from "../utils/rbac.js";
+import { clearClientSession, ensureClientSession, isClientSessionExpired, recordClientActivity } from "../utils/session.js";
 
 const THEME_STORAGE_KEY = "hr_theme";
 
@@ -38,6 +39,46 @@ export default function Layout({ children }) {
   }, [location.pathname]);
 
   useEffect(() => {
+    ensureClientSession();
+    if (isClientSessionExpired()) {
+      clearClientSession();
+      localStorage.removeItem("hr_token");
+      localStorage.removeItem("hr_auth");
+      if (location.pathname.startsWith("/app") || location.pathname.startsWith("/logs") ||
+          location.pathname.startsWith("/portal-data") || location.pathname.startsWith("/trusts-data") ||
+          location.pathname.startsWith("/bot-active")) {
+        navigate("/login");
+      }
+    }
+  }, [location.pathname, navigate]);
+
+  useEffect(() => {
+    let scheduled = false;
+    const handleActivity = () => {
+      if (scheduled) return;
+      scheduled = true;
+      window.setTimeout(() => {
+        scheduled = false;
+        recordClientActivity();
+      }, 1000);
+    };
+
+    window.addEventListener("mousemove", handleActivity);
+    window.addEventListener("keydown", handleActivity);
+    window.addEventListener("mousedown", handleActivity);
+    window.addEventListener("scroll", handleActivity, { passive: true });
+    window.addEventListener("touchstart", handleActivity, { passive: true });
+
+    return () => {
+      window.removeEventListener("mousemove", handleActivity);
+      window.removeEventListener("keydown", handleActivity);
+      window.removeEventListener("mousedown", handleActivity);
+      window.removeEventListener("scroll", handleActivity);
+      window.removeEventListener("touchstart", handleActivity);
+    };
+  }, []);
+
+  useEffect(() => {
     if (!isMobileNavOpen) {
       document.body.style.overflow = "";
       return;
@@ -56,6 +97,7 @@ export default function Layout({ children }) {
   }, [isMobileNavOpen]);
 
   const handleSignOff = () => {
+    clearClientSession();
     localStorage.removeItem("hr_token");
     localStorage.removeItem("hr_auth");
     navigate("/login");
