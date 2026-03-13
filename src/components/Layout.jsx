@@ -301,7 +301,9 @@ export default function Layout({ children }) {
         </div>
       </nav>
 
-      <main id="main-content">{children}</main>
+      <main id="main-content" className={isAppShell ? "app-workspace" : undefined}>
+        {children}
+      </main>
 
       <footer className="site-footer">
         <div className="container footer-grid">

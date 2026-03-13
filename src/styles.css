@@ -1019,6 +1019,26 @@ body {
   background: var(--white);
 }
 
+.app-workspace {
+  font-size: 15px;
+  line-height: 1.55;
+}
+
+.app-workspace .btn,
+.app-workspace .sheet-tab,
+.app-workspace .page-desc,
+.app-workspace .sheet-field input,
+.app-workspace .date-range input,
+.app-workspace .text-viewer-input,
+.app-workspace .scheduler-table,
+.app-workspace .shift-select {
+  font-size: 0.95em;
+}
+
+.app-workspace .page-header-grid.minimal .page-title {
+  font-size: 30px;
+}
+
 :root[data-theme="dark"] .dashboard-hero {
   background: var(--white);
 }
