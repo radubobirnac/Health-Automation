@@ -5,6 +5,7 @@ import ShiftTypeManager from "../components/ShiftTypeManager.jsx";
 import { authedFetch } from "../utils/api.js";
 import { hasPortalAccess } from "../utils/rbac.js";
 import { getShiftClass } from "../utils/shiftClass.js";
+import { BASE_SCHEDULER_COLUMNS } from "../utils/schedulerColumns.js";
 
 const buildDateRange = (start, end) => {
   const dates = [];
@@ -18,12 +19,104 @@ const buildDateRange = (start, end) => {
 
 const toInputDate = (date) => date.toISOString().slice(0, 10);
 const MIN_ROWS = 15;
+const CUSTOM_COLUMN_CLASS = "col-custom";
+const CUSTOM_COLUMNS_STORAGE_PREFIX = "hr_sheet_columns";
+const BASE_COLUMN_KEYS = BASE_SCHEDULER_COLUMNS.map((col) => col.key);
+const BASE_COLUMN_KEY_SET = new Set(BASE_COLUMN_KEYS);
 
-const padRows = (rows) => {
-  const next = [...rows];
+const normalizeLabel = (value) => (value || "").trim().replace(/\s+/g, " ");
+
+const toColumnKey = (label) => {
+  const slug = normalizeLabel(label)
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "_")
+    .replace(/^_+|_+$/g, "");
+  return slug;
+};
+
+const toColumnLabel = (key) =>
+  normalizeLabel(key)
+    .replace(/[_-]+/g, " ")
+    .replace(/\b\w/g, (char) => char.toUpperCase());
+
+const buildCustomColumn = (key, label) => ({
+  key,
+  label: normalizeLabel(label) || toColumnLabel(key),
+  className: CUSTOM_COLUMN_CLASS
+});
+
+const getColumnsStorageKey = (userId, sheetId) =>
+  `${CUSTOM_COLUMNS_STORAGE_PREFIX}:${userId}:${sheetId}`;
+
+const loadStoredColumns = (userId, sheetId) => {
+  if (!userId || !sheetId) return [];
+  const raw = localStorage.getItem(getColumnsStorageKey(userId, sheetId));
+  if (!raw) return [];
+  try {
+    const parsed = JSON.parse(raw);
+    if (!Array.isArray(parsed)) return [];
+    return parsed
+      .filter((col) => col && typeof col.key === "string")
+      .map((col) => buildCustomColumn(col.key, col.label));
+  } catch {
+    return [];
+  }
+};
+
+const mergeCustomColumns = (current, additions) => {
+  if (!additions?.length) return current;
+  const existing = new Set(current.map((col) => col.key));
+  const next = [...current];
+  additions.forEach((col) => {
+    if (!existing.has(col.key)) {
+      existing.add(col.key);
+      next.push(col);
+    }
+  });
+  return next.length === current.length ? current : next;
+};
+
+const ensureColumnDefaults = (row, columns = []) => {
+  if (!columns.length) return row;
+  let updated = row;
+  columns.forEach((col) => {
+    if (updated[col.key] === undefined) {
+      if (updated === row) {
+        updated = { ...row };
+      }
+      updated[col.key] = "";
+    }
+  });
+  return updated;
+};
+
+const padRows = (rows, customColumns = []) => {
+  const normalized = rows.map((row) => ensureColumnDefaults(row, customColumns));
+  const next = [...normalized];
   while (next.length < MIN_ROWS) {
-    next.push({
-      id: `temp-${Date.now()}-${next.length}`,
+    next.push(
+      ensureColumnDefaults(
+        {
+          id: `temp-${Date.now()}-${next.length}`,
+          locum_name: "",
+          client: "",
+          search_firstname: "",
+          specialty: "",
+          keyword: "",
+          gender: "",
+          time: ""
+        },
+        customColumns
+      )
+    );
+  }
+  return next;
+};
+
+const createEmptyRow = (customColumns = []) =>
+  ensureColumnDefaults(
+    {
+      id: `row-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
       locum_name: "",
       client: "",
       search_firstname: "",
@@ -31,21 +124,24 @@ const padRows = (rows) => {
       keyword: "",
       gender: "",
       time: ""
-    });
-  }
-  return next;
-};
+    },
+    customColumns
+  );
 
-const createEmptyRow = () => ({
-  id: `row-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
-  locum_name: "",
-  client: "",
-  search_firstname: "",
-  specialty: "",
-  keyword: "",
-  gender: "",
-  time: ""
-});
+const inferCustomColumns = (rows, existingKeys) => {
+  if (!rows?.length) return [];
+  const discovered = new Set();
+  rows.forEach((row) => {
+    if (!row || typeof row !== "object") return;
+    Object.keys(row).forEach((key) => {
+      if (key === "id") return;
+      if (BASE_COLUMN_KEY_SET.has(key)) return;
+      if (existingKeys.has(key)) return;
+      discovered.add(key);
+    });
+  });
+  return Array.from(discovered).map((key) => buildCustomColumn(key, ""));
+};
 
 export default function Dashboard() {
   const [sheets, setSheets] = useState([]);
@@ -58,12 +154,13 @@ export default function Dashboard() {
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [shiftTypes, setShiftTypes] = useState(["LD", "E", "N", "AE"]);
   const [showShiftManager, setShowShiftManager] = useState(false);
-  const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [customColumns, setCustomColumns] = useState([]);
+  const [newColumnLabel, setNewColumnLabel] = useState("");
+  const [columnError, setColumnError] = useState("");
   const sheetCacheRef = useRef(new Map());
   const lastLocalUpdateRef = useRef({});
   const lastServerSyncRef = useRef({});
   const dataSheetIdRef = useRef(null);
-  const menuRef = useRef(null);
   const [startDate, setStartDate] = useState(() => {
     const today = new Date();
     return toInputDate(today);
@@ -81,6 +178,11 @@ export default function Dashboard() {
   const POLL_INTERVAL_MS = 3000;
   const [selectedCell, setSelectedCell] = useState(null);
   const [viewerText, setViewerText] = useState("");
+
+  const allColumns = useMemo(
+    () => [...BASE_SCHEDULER_COLUMNS, ...customColumns],
+    [customColumns]
+  );
 
 
   const markLocalUpdate = () => {
@@ -162,7 +264,7 @@ export default function Dashboard() {
       if (shouldApply) {
         dataSheetIdRef.current = activeSheetId;
         setSheetName(payload?.sheet?.name || "");
-        setNurses(padRows(payload?.nurses || []));
+        setNurses(padRows(payload?.nurses || [], customColumns));
         const nextMap = {};
         (payload?.shifts || []).forEach((shift) => {
           nextMap[`${shift.nurse_id}_${shift.date}`] = shift.shift;
@@ -250,21 +352,53 @@ export default function Dashboard() {
   }, [userId]);
 
   useEffect(() => {
-    setSelectedRowIds([]);
-  }, [activeSheetId]);
+    if (!userId || !activeSheetId) {
+      setCustomColumns([]);
+      return;
+    }
+    setCustomColumns(loadStoredColumns(userId, activeSheetId));
+    setNewColumnLabel("");
+    setColumnError("");
+  }, [userId, activeSheetId]);
 
   useEffect(() => {
-    if (!isMenuOpen) return;
-    const handleClick = (event) => {
-      if (menuRef.current && !menuRef.current.contains(event.target)) {
-        setIsMenuOpen(false);
-      }
-    };
-    document.addEventListener("mousedown", handleClick);
-    return () => {
-      document.removeEventListener("mousedown", handleClick);
-    };
-  }, [isMenuOpen]);
+    if (!userId || !activeSheetId) return;
+    localStorage.setItem(
+      getColumnsStorageKey(userId, activeSheetId),
+      JSON.stringify(customColumns)
+    );
+  }, [customColumns, userId, activeSheetId]);
+
+  useEffect(() => {
+    if (!userId || !activeSheetId) return;
+    if (!nurses?.length) return;
+    const existingKeys = new Set([
+      ...BASE_COLUMN_KEYS,
+      ...customColumns.map((col) => col.key)
+    ]);
+    const inferred = inferCustomColumns(nurses, existingKeys);
+    if (!inferred.length) return;
+    setCustomColumns((prev) => mergeCustomColumns(prev, inferred));
+  }, [nurses, userId, activeSheetId, customColumns]);
+
+  useEffect(() => {
+    if (!customColumns.length) return;
+    setNurses((prev) => {
+      let changed = false;
+      const next = prev.map((row) => {
+        const updated = ensureColumnDefaults(row, customColumns);
+        if (updated !== row) {
+          changed = true;
+        }
+        return updated;
+      });
+      return changed ? next : prev;
+    });
+  }, [customColumns]);
+
+  useEffect(() => {
+    setSelectedRowIds([]);
+  }, [activeSheetId]);
 
   useEffect(() => {
     const sheetId = dataSheetIdRef.current;
@@ -358,8 +492,8 @@ export default function Dashboard() {
 
   const handleAddRow = () => {
     markLocalUpdate();
-    const newRow = createEmptyRow();
-    setNurses((prev) => padRows([...prev, newRow]));
+    const newRow = createEmptyRow(customColumns);
+    setNurses((prev) => padRows([...prev, newRow], customColumns));
     saveNurses([newRow]);
   };
 
@@ -416,7 +550,7 @@ export default function Dashboard() {
       setSheets((prev) => [...prev.filter((s) => s.name !== "Logs"), created, ...prev.filter((s) => s.name === "Logs")]);
       setActiveSheetId(created.sheet_id);
       setSheetName(created.name);
-      setNurses(padRows([]));
+      setNurses(padRows([], customColumns));
       setShifts({});
       dataSheetIdRef.current = created.sheet_id;
     } catch (error) {
@@ -447,7 +581,7 @@ export default function Dashboard() {
         setActiveSheetId(remaining[0].sheet_id);
         setSheetName(remaining[0].name);
       }
-      setNurses(padRows([]));
+      setNurses(padRows([], customColumns));
       setShifts({});
       dataSheetIdRef.current = remaining.length > 0 ? remaining[0].sheet_id : null;
       setShowDeleteConfirm(false);
@@ -473,7 +607,7 @@ export default function Dashboard() {
   const handleEnsureRows = (newRows) => {
     if (!newRows?.length) return;
     markLocalUpdate();
-    setNurses((prev) => padRows([...prev, ...newRows]));
+    setNurses((prev) => padRows([...prev, ...newRows], customColumns));
     saveNurses(newRows);
   };
 
@@ -517,7 +651,9 @@ export default function Dashboard() {
     if (!idsToDelete.length || !activeSheetId) return;
     markLocalUpdate();
     const selectedIdsSet = new Set(idsToDelete);
-    setNurses((prev) => padRows(prev.filter((nurse) => !selectedIdsSet.has(nurse.id))));
+    setNurses((prev) =>
+      padRows(prev.filter((nurse) => !selectedIdsSet.has(nurse.id)), customColumns)
+    );
     setShifts((prev) => {
       const next = {};
       Object.entries(prev || {}).forEach(([key, value]) => {
@@ -539,6 +675,36 @@ export default function Dashboard() {
     } catch (error) {
       setStatus({ state: "error", message: "Failed to delete selected rows." });
     }
+  };
+
+  const handleAddColumn = () => {
+    const label = normalizeLabel(newColumnLabel);
+    if (!label) {
+      setColumnError("Enter a column name.");
+      return;
+    }
+    const baseKey = toColumnKey(label);
+    if (!baseKey) {
+      setColumnError("Use letters or numbers only.");
+      return;
+    }
+    const existingKeys = new Set([
+      ...BASE_COLUMN_KEYS,
+      ...customColumns.map((col) => col.key)
+    ]);
+    let key = baseKey;
+    let counter = 2;
+    while (existingKeys.has(key)) {
+      key = `${baseKey}_${counter}`;
+      counter += 1;
+    }
+    const nextColumn = buildCustomColumn(key, label);
+    setCustomColumns((prev) => [...prev, nextColumn]);
+    setNurses((prev) =>
+      prev.map((row) => (row?.[key] === undefined ? { ...row, [key]: "" } : row))
+    );
+    setNewColumnLabel("");
+    setColumnError("");
   };
 
 
@@ -591,30 +757,66 @@ export default function Dashboard() {
             <div className="page-header-copy">
               <div className="page-title">Shift Monitoring - {sheetName}</div>
               <p className="page-desc">Manage weekly shift assignments.</p>
-              <textarea
-                className="text-viewer-input"
-                placeholder="Selected field text will appear here"
-                value={viewerText}
-                onChange={handleViewerChange}
-                rows={2}
-              />
             </div>
             <div className="page-header-actions compact">
-              <div className="date-range">
-                <label className="date-label">Start Date</label>
-                <input
-                  type="date"
-                  value={startDate}
-                  onChange={(event) => setStartDate(event.target.value)}
-                />
-              </div>
-              <div className="date-range">
-                <label className="date-label">End Date</label>
-                <input
-                  type="date"
-                  value={endDate}
-                  onChange={(event) => setEndDate(event.target.value)}
-                />
+              <div className="action-dock" aria-label="Sheet actions">
+                <div className="action-dock-title">Sheet Actions</div>
+                <div className="action-dock-grid">
+                  <button
+                    className="btn btn-danger btn-xs"
+                    type="button"
+                    disabled={!selectedRowIds.length}
+                    onClick={handleDeleteSelectedRows}
+                  >
+                    Delete Rows
+                  </button>
+                  <button
+                    className="btn btn-outline btn-xs"
+                    type="button"
+                    onClick={() => setShowShiftManager(true)}
+                  >
+                    Edit Shift Types
+                  </button>
+                  <button
+                    className="btn btn-outline btn-xs"
+                    type="button"
+                    onClick={handleDuplicateSheet}
+                  >
+                    Duplicate Sheet
+                  </button>
+                  <button
+                    className="btn btn-outline btn-xs btn-danger-outline"
+                    type="button"
+                    onClick={() => setShowDeleteConfirm(true)}
+                  >
+                    Delete Sheet
+                  </button>
+                </div>
+                <div className="action-dock-add">
+                  <input
+                    type="text"
+                    placeholder="New column"
+                    value={newColumnLabel}
+                    onChange={(event) => {
+                      setNewColumnLabel(event.target.value);
+                      if (columnError) setColumnError("");
+                    }}
+                    onKeyDown={(event) => {
+                      if (event.key === "Enter") {
+                        event.preventDefault();
+                        handleAddColumn();
+                      }
+                    }}
+                  />
+                  <button
+                    className="btn btn-primary btn-xs"
+                    type="button"
+                    onClick={handleAddColumn}
+                  >
+                    Add Column
+                  </button>
+                </div>
+                {columnError && <span className="action-dock-error">{columnError}</span>}
               </div>
               {status.message && (
                 <span className="status-pill">{status.message}</span>
@@ -662,62 +864,33 @@ export default function Dashboard() {
                   }}
                 />
               </div>
-              <button
-                className="btn btn-danger btn-sm"
-                type="button"
-                disabled={!selectedRowIds.length}
-                onClick={handleDeleteSelectedRows}
-              >
-                Delete Selected Rows
-              </button>
+              <div className="sheet-field sheet-viewer-field">
+                <label>Selected field</label>
+                <textarea
+                  className="text-viewer-input"
+                  placeholder="Selected field text will appear here"
+                  value={viewerText}
+                  onChange={handleViewerChange}
+                  rows={2}
+                />
+              </div>
             </div>
             <div className="action-bar-right">
-              <button
-                className="btn btn-outline btn-sm"
-                type="button"
-                onClick={() => setShowShiftManager(true)}
-              >
-                Edit Shift Types
-              </button>
-              <button
-                className="btn btn-outline btn-sm"
-                type="button"
-                onClick={handleDuplicateSheet}
-              >
-                Duplicate Sheet
-              </button>
-              <div className="menu-wrap" ref={menuRef}>
-                <button
-                  className="btn btn-outline btn-sm ellipsis-btn"
-                  type="button"
-                  aria-haspopup="true"
-                  aria-expanded={isMenuOpen}
-                  aria-label="More options"
-                  onClick={() => setIsMenuOpen((prev) => !prev)}
-                >
-                  ...
-                </button>
-                {isMenuOpen && (
-                  <div className="menu-card" role="menu">
-                    <button
-                      type="button"
-                      className="menu-item"
-                      onClick={() => setIsMenuOpen(false)}
-                    >
-                      Archive Sheet
-                    </button>
-                    <button
-                      type="button"
-                      className="menu-item menu-item--danger"
-                      onClick={() => {
-                        setIsMenuOpen(false);
-                        setShowDeleteConfirm(true);
-                      }}
-                    >
-                      Delete Sheet
-                    </button>
-                  </div>
-                )}
+              <div className="date-range">
+                <label className="date-label">Start Date</label>
+                <input
+                  type="date"
+                  value={startDate}
+                  onChange={(event) => setStartDate(event.target.value)}
+                />
+              </div>
+              <div className="date-range">
+                <label className="date-label">End Date</label>
+                <input
+                  type="date"
+                  value={endDate}
+                  onChange={(event) => setEndDate(event.target.value)}
+                />
               </div>
             </div>
           </div>
@@ -736,6 +909,7 @@ export default function Dashboard() {
           <div className="dashboard-grid">
             <div>
               <SchedulerGrid
+                columns={allColumns}
                 nurses={nurses}
                 dates={dates}
                 shifts={shifts}

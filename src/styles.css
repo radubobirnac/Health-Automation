@@ -1015,7 +1015,7 @@ body {
 }
 
 .dashboard-hero {
-  padding: 24px 0 16px;
+  padding: 14px 0 10px;
   background: var(--white);
 }
 
@@ -1096,7 +1096,7 @@ body {
 }
 
 .dashboard-section {
-  padding: 32px 0;
+  padding: 14px 0;
   background: var(--white);
 }
 
@@ -1111,11 +1111,11 @@ body {
 
 .sheet-tabs {
   display: flex;
-  gap: 12px;
+  gap: 8px;
   flex-wrap: nowrap;
   overflow-x: auto;
-  margin-bottom: 12px;
-  padding-bottom: 6px;
+  margin-bottom: 8px;
+  padding-bottom: 4px;
 }
 
 .sheet-tabs--minimal {
@@ -1143,10 +1143,10 @@ body {
 .action-bar {
   display: flex;
   justify-content: space-between;
-  align-items: center;
-  gap: 16px;
+  align-items: flex-start;
+  gap: 12px;
   flex-wrap: wrap;
-  margin: 12px 0 12px;
+  margin: 8px 0 10px;
 }
 
 .action-bar.minimal {
@@ -1162,6 +1162,52 @@ body {
   align-items: center;
   gap: 10px;
   flex-wrap: wrap;
+}
+
+.action-dock {
+  display: grid;
+  gap: 8px;
+  padding: 10px;
+  border-radius: 12px;
+  border: 1px solid var(--grid-line);
+  background: var(--gray-100);
+  min-width: 220px;
+  max-width: 320px;
+}
+
+.action-dock-title {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--gray-600);
+  letter-spacing: 0.6px;
+  text-transform: uppercase;
+}
+
+.action-dock-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 6px;
+}
+
+.action-dock-add {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 6px;
+}
+
+.action-dock-add input {
+  padding: 6px 8px;
+  border-radius: 8px;
+  border: 1px solid var(--grid-line);
+  font-family: inherit;
+  font-size: 13px;
+  background: var(--white);
+  color: var(--text-primary);
+}
+
+.action-dock-error {
+  font-size: 12px;
+  color: #b42318;
 }
 
 
@@ -1215,6 +1261,17 @@ body {
   border-radius: 8px;
 }
 
+.btn-xs {
+  padding: 6px 10px;
+  font-size: 12px;
+  border-radius: 7px;
+}
+
+.btn-danger-outline {
+  border-color: #dc3545;
+  color: #dc3545;
+}
+
 /* Ellipsis / more-options button */
 .ellipsis-btn {
   letter-spacing: 2px;
@@ -1228,11 +1285,11 @@ body {
 .shift-legend {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 6px;
   flex-wrap: wrap;
-  padding: 10px 0 8px;
+  padding: 6px 0 6px;
   border-bottom: 1px solid var(--grid-line);
-  margin-bottom: 4px;
+  margin-bottom: 2px;
 }
 
 .shift-legend-label {
@@ -1263,11 +1320,11 @@ body {
 .dashboard-grid {
   display: flex;
   flex-direction: column;
-  gap: 12px;
-  align-items: start;
+  gap: 8px;
+  align-items: stretch;
   padding-left: 0;
   width: 100%;
-  min-height: calc(100vh - 220px);
+  min-height: 0;
 }
 
 .dashboard-aside {
@@ -1315,7 +1372,12 @@ body {
 }
 
 .sheet-name-field {
-  min-width: 220px;
+  min-width: 160px;
+}
+
+.sheet-viewer-field {
+  min-width: 260px;
+  max-width: 420px;
 }
 
 .sheet-import {
@@ -1326,7 +1388,7 @@ body {
   background: var(--white);
   border-radius: 12px;
   border: 1px solid var(--grid-line);
-  padding: 24px;
+  padding: 12px;
   box-shadow: none;
   width: 100%;
   display: flex;
@@ -1345,7 +1407,7 @@ body {
   min-width: 0;
   flex: 1;
   max-height: none;
-  height: clamp(420px, 80vh, 980px);
+  height: clamp(460px, 86vh, 1200px);
 }
 
 .scheduler-table-layout {
@@ -1386,7 +1448,7 @@ body {
 .scheduler-table th,
 .scheduler-table td {
   border: 1px solid var(--grid-line);
-  padding: 6px 8px;
+  padding: 4px 6px;
   text-align: left;
   background: var(--white);
   vertical-align: middle;
@@ -1398,18 +1460,18 @@ body {
   background: var(--gray-100);
   z-index: 3;
   font-weight: 500;
-  font-size: 14px;
+  font-size: 13px;
   line-height: 1.2;
-  padding-top: 6px;
-  padding-bottom: 6px;
+  padding-top: 4px;
+  padding-bottom: 4px;
 }
 
 .scheduler-table tbody tr {
-  height: 32px;
+  height: 28px;
 }
 
 .scheduler-table tbody td {
-  height: 32px;
+  height: 28px;
 }
 
 .scheduler-table tbody .cell-stack {
@@ -1490,19 +1552,19 @@ body {
 }
 
 .header-cell {
-  height: 40px;
-  min-height: 40px;
-  padding-top: 6px;
-  padding-bottom: 6px;
+  height: 34px;
+  min-height: 34px;
+  padding-top: 4px;
+  padding-bottom: 4px;
   box-sizing: border-box;
 }
 
 .date-col.header-cell,
 .scheduler-table-dates thead th {
-  height: 63.21px;
-  min-height: 63.21px;
-  padding-top: 6px;
-  padding-bottom: 6px;
+  height: 52px;
+  min-height: 52px;
+  padding-top: 4px;
+  padding-bottom: 4px;
 }
 
 .week-group {
@@ -1543,10 +1605,10 @@ body {
   border: 1px solid transparent;
   background: transparent;
   font-family: inherit;
-  padding: 3px 6px;
+  padding: 2px 6px;
   border-radius: 8px;
   color: inherit;
-  height: 20px;
+  height: 18px;
 }
 
 .scheduler-table input[type="checkbox"] {
@@ -1572,7 +1634,7 @@ body {
 
 .shift-select {
   width: 100%;
-  padding: 4px 26px 4px 8px;
+  padding: 2px 24px 2px 8px;
   border-radius: 8px;
   border: 1px solid var(--grid-line);
   font-family: inherit;
@@ -1581,10 +1643,27 @@ body {
   background-repeat: no-repeat;
   background-position: right 8px center;
   color: var(--shift-text, var(--text-primary));
-  height: 24px;
+  height: 22px;
   appearance: none;
   -webkit-appearance: none;
   transition: background-color 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.col-custom {
+  width: 140px;
+  min-width: 140px;
+}
+
+.text-viewer-input {
+  width: 100%;
+  border: 1px solid var(--grid-line);
+  border-radius: 10px;
+  padding: 6px 8px;
+  font-family: inherit;
+  font-size: 14px;
+  resize: vertical;
+  background: var(--white);
+  color: var(--text-primary);
 }
 
 .shift-select:hover,
@@ -2215,6 +2294,15 @@ body {
 
   .dashboard-grid {
     min-height: auto;
+  }
+
+  .action-dock {
+    width: 100%;
+    max-width: none;
+  }
+
+  .action-dock-add {
+    grid-template-columns: 1fr;
   }
 
   .hero-form-card {

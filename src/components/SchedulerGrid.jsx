@@ -1,15 +1,6 @@
 import { useMemo } from "react";
 import { getShiftClass } from "../utils/shiftClass.js";
-
-const LEFT_COLUMNS = [
-  { key: "locum_name", label: "Locum Name", className: "col-locum" },
-  { key: "client", label: "Client", className: "col-client" },
-  { key: "search_firstname", label: "Search with firstname", className: "col-search" },
-  { key: "specialty", label: "Specialty", className: "col-specialty" },
-  { key: "keyword", label: "Book based on keyword", className: "col-keyword" },
-  { key: "gender", label: "Gender", className: "col-gender" },
-  { key: "time", label: "Time", className: "col-time" }
-];
+import { BASE_SCHEDULER_COLUMNS } from "../utils/schedulerColumns.js";
 
 const formatDateLabel = (date) =>
   date.toLocaleDateString("en-GB", { day: "2-digit", month: "2-digit", year: "2-digit" });
@@ -27,6 +18,7 @@ export default function SchedulerGrid({
   onBulkShiftChange,
   onNurseChange,
   onBulkNurseChange,
+  columns = BASE_SCHEDULER_COLUMNS,
   selectedRowIds,
   onToggleRow,
   onNurseCommit,
@@ -35,6 +27,10 @@ export default function SchedulerGrid({
   selectedCellId = null,
   onCellSelect
 }) {
+  const leftColumns = useMemo(
+    () => (Array.isArray(columns) && columns.length ? columns : BASE_SCHEDULER_COLUMNS),
+    [columns]
+  );
   const dateKeys = useMemo(
     () => dates.map((date) => date.toISOString().slice(0, 10)),
     [dates]
@@ -60,7 +56,7 @@ export default function SchedulerGrid({
   };
 
   const createEmptyRow = (id) =>
-    LEFT_COLUMNS.reduce((acc, col) => ({ ...acc, [col.key]: "" }), { id });
+    leftColumns.reduce((acc, col) => ({ ...acc, [col.key]: "" }), { id });
 
   const prepareRowTargets = (targetRowIndices) => {
     const rowIdByIndex = new Map();
@@ -117,8 +113,8 @@ export default function SchedulerGrid({
       const targetRowIndex = targetRowIndices[rowOffset];
       const nurseId = rowIdByIndex.get(targetRowIndex);
       values.forEach((value, colOffset) => {
-        if (colOffset < LEFT_COLUMNS.length) {
-          const column = LEFT_COLUMNS[colOffset];
+        if (colOffset < leftColumns.length) {
+          const column = leftColumns[colOffset];
           if (!column) return;
           nurseUpdates.push({
             rowIndex: targetRowIndex,
@@ -128,7 +124,7 @@ export default function SchedulerGrid({
           nurseAffected.add(targetRowIndex);
           return;
         }
-        const dateKey = dateKeys[colOffset - LEFT_COLUMNS.length];
+        const dateKey = dateKeys[colOffset - leftColumns.length];
         if (!dateKey) return;
         if (!nurseId) return;
         shiftUpdates.push({
@@ -196,7 +192,7 @@ export default function SchedulerGrid({
     rowMatrix.forEach((values, rowOffset) => {
       const targetRowIndex = targetRowIndices[rowOffset];
       values.forEach((value, colOffset) => {
-        const column = LEFT_COLUMNS[colIndex + colOffset];
+        const column = leftColumns[colIndex + colOffset];
         if (!column) return;
         updates.push({
           rowIndex: targetRowIndex,
@@ -222,7 +218,7 @@ export default function SchedulerGrid({
           if (!rowsToCopy.length) return;
           const text = rowsToCopy
             .map((nurse) => {
-              const leftValues = LEFT_COLUMNS.map((col) => nurse[col.key] ?? "");
+              const leftValues = leftColumns.map((col) => nurse[col.key] ?? "");
               const shiftValues = dateKeys.map(
                 (dateKey) => shifts[`${nurse.id}_${dateKey}`] ?? ""
               );
@@ -240,7 +236,7 @@ export default function SchedulerGrid({
               <thead>
                 <tr>
                   <th className="col-select header-cell" aria-hidden="true" />
-                  {LEFT_COLUMNS.map((col) => (
+                  {leftColumns.map((col) => (
                     <th key={col.key} className={`${col.className} header-cell`}>
                       {col.label}
                     </th>
@@ -262,7 +258,7 @@ export default function SchedulerGrid({
                           aria-label={`Select row ${rowIndex + 1}`}
                         />
                       </td>
-                      {LEFT_COLUMNS.map((col, colIndex) => (
+                      {leftColumns.map((col, colIndex) => (
                         <td key={`${nurse.id}-${col.key}`} className={col.className}>
                           <input
                             type="text"
