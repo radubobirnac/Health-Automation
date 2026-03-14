@@ -18,7 +18,7 @@ const buildDateRange = (start, end) => {
 };
 
 const toInputDate = (date) => date.toISOString().slice(0, 10);
-const MIN_ROWS = 15;
+const MIN_ROWS = 20;
 const CUSTOM_COLUMN_CLASS = "col-custom";
 const CUSTOM_COLUMNS_STORAGE_PREFIX = "hr_sheet_columns";
 const BASE_COLUMN_KEYS = BASE_SCHEDULER_COLUMNS.map((col) => col.key);

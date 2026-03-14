@@ -4,7 +4,7 @@ const SESSION_STARTED_KEY = "hr_session_started";
 const SESSION_LAST_ACTIVE_KEY = "hr_last_active";
 
 const DAY_MS = 24 * 60 * 60 * 1000;
-const MAX_SESSION_AGE_MS = 5 * DAY_MS;
+const MAX_SESSION_AGE_MS = 7 * DAY_MS;
 const MAX_IDLE_MS = 7 * DAY_MS;
 
 const now = () => Date.now();

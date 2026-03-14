@@ -212,12 +212,8 @@ const REQUIRED_INGEST_FIELDS = [
   "start",
   "end",
   "date",
-  "release",
-  "disappeared",
-  "sector",
-  "client",
-  "trust",
-  "portal"
+  "released",
+  "filled"
 ];
 
 const isIsoDate = (value) => /^\d{4}-\d{2}-\d{2}$/.test(value);
@@ -240,6 +236,13 @@ const parseNumber = (value) => {
   return null;
 };
 
+const PORTAL_TIMESTAMP_RE = /^\d{2}:\d{2}:\d{2}\s+\d{2}\/\d{2}\/\d{4}$/;
+
+const isPortalTimestamp = (value) => {
+  if (!value || typeof value !== "string") return false;
+  return PORTAL_TIMESTAMP_RE.test(value.trim());
+};
+
 const validateIngestRow = (row) => {
   const errors = [];
   const normalized = {};
@@ -254,29 +257,29 @@ const validateIngestRow = (row) => {
     }
   });
 
-  const requestId = parseNumber(row.request_id);
-  if (requestId === null) {
-    errors.push("request_id must be a number.");
+  const requestId = normalizeName(row.request_id);
+  if (!requestId) {
+    errors.push("request_id must be a non-empty string.");
   }
 
-  const requestGrade = parseNumber(row.request_grade);
-  if (requestGrade === null) {
-    errors.push("request_grade must be a number.");
+  const requestGrade = normalizeName(row.request_grade);
+  if (!requestGrade) {
+    errors.push("request_grade must be a non-empty string.");
   }
 
-  const release = parseBoolean(row.release);
-  if (release === null) {
-    errors.push("release must be a boolean.");
+  const released = normalizeName(row.released);
+  if (released && !isPortalTimestamp(released)) {
+    errors.push("released must be a timestamp in HH:MM:SS DD/MM/YYYY format.");
   }
 
-  const disappeared = parseBoolean(row.disappeared);
-  if (disappeared === null) {
-    errors.push("disappeared must be a boolean.");
+  const filled = normalizeName(row.filled);
+  if (filled && !isPortalTimestamp(filled)) {
+    errors.push("filled must be a timestamp in HH:MM:SS DD/MM/YYYY format.");
   }
 
   const dateValue = normalizeName(row.date);
-  if (dateValue && !isIsoDate(dateValue)) {
-    errors.push("date must be in YYYY-MM-DD format.");
+  if (dateValue && !isIsoDate(dateValue) && !/^\d{2}-[A-Za-z]{3}-\d{4}$/.test(dateValue)) {
+    errors.push("date must be in YYYY-MM-DD or DD-Mon-YYYY format.");
   }
 
   const startValue = normalizeName(row.start);
@@ -298,12 +301,12 @@ const validateIngestRow = (row) => {
   normalized.start = startValue;
   normalized.end = endValue;
   normalized.date = dateValue;
-  normalized.release = release;
-  normalized.disappeared = disappeared;
-  normalized.sector = String(row.sector).trim();
-  normalized.client = String(row.client).trim();
-  normalized.trust = String(row.trust).trim();
-  normalized.portal = String(row.portal).trim();
+  normalized.released = released;
+  normalized.filled = filled;
+  if (row.sector !== undefined) normalized.sector = String(row.sector).trim();
+  if (row.client !== undefined) normalized.client = String(row.client).trim();
+  if (row.trust !== undefined) normalized.trust = String(row.trust).trim();
+  if (row.portal !== undefined) normalized.portal = String(row.portal).trim();
   normalized.received_at = new Date().toISOString();
 
   return { errors: [], normalized };
@@ -357,6 +360,12 @@ export const handleApiRequest = async ({ method, path, query = {}, body, headers
   let normalizedPath = path;
   if (normalizedPath === "/portal-data") {
     normalizedPath = "/data/rows";
+  }
+  if (normalizedPath === "/portal") {
+    normalizedPath = upperMethod === "GET" ? "/data/rows" : "/data/ingest";
+  }
+  if (normalizedPath === "/update-shift") {
+    normalizedPath = "/shift-types/upsert";
   }
   if (normalizedPath === "/bot-data" || normalizedPath === "/bot-status") {
     normalizedPath = "/bot/status";
@@ -439,7 +448,7 @@ export const handleApiRequest = async ({ method, path, query = {}, body, headers
         username: authUser.username,
         role: authUser.role || "client"
         },
-        authUser.role === "admin" ? "7d" : "5d"
+        "7d"
       );
       return response(200, {
         token,
@@ -621,7 +630,8 @@ export const handleApiRequest = async ({ method, path, query = {}, body, headers
   }
 
   if (path === "/sheets" || path === "/schedule" || path === "/schedule/update" ||
-      path === "/nurses/upsert" || path === "/nurses/delete") {
+      path === "/nurses/upsert" || path === "/nurses/delete" ||
+      path === "/shift-types" || path === "/shift-types/upsert" || path === "/shift-types/delete") {
     const secretProvided =
       getHeaderValue(headers, "API_SECRET") || getHeaderValue(headers, "X-API-SECRET");
     if (secretProvided) {
@@ -735,6 +745,67 @@ export const handleApiRequest = async ({ method, path, query = {}, body, headers
         );
         await saveUserDb(secretUserId, userDb);
         return response(200, { ok: true });
+      }
+
+      if (upperMethod === "GET" && path === "/shift-types") {
+        const userDb = await loadUserDb(secretUserId);
+        const ensured = ensureBookedShiftTypes(
+          userDb.shiftTypes?.length ? userDb.shiftTypes : clone(DEFAULT_SHIFT_TYPES)
+        );
+        userDb.shiftTypes = ensured;
+        await saveUserDb(secretUserId, userDb);
+        return response(200, { shiftTypes: ensured });
+      }
+
+      if (upperMethod === "POST" && path === "/shift-types/upsert") {
+        const oldName = normalizeShiftType(body?.old_name);
+        const newName = normalizeShiftType(body?.new_name);
+        if (!newName) {
+          return response(400, { error: "new_name is required." });
+        }
+        if (newName.length > 6) {
+          return response(400, { error: "Shift type name must be 6 characters or fewer." });
+        }
+        const userDb = await loadUserDb(secretUserId);
+        const types = ensureBookedShiftTypes(
+          userDb.shiftTypes?.length ? userDb.shiftTypes : clone(DEFAULT_SHIFT_TYPES)
+        );
+        const removeType = (value) => {
+          const idx = types.indexOf(value);
+          if (idx >= 0) types.splice(idx, 1);
+        };
+        if (oldName) {
+          const index = types.indexOf(oldName);
+          if (index === -1) return response(404, { error: "Shift type not found." });
+          if (newName !== oldName && types.includes(newName)) return response(409, { error: "Shift type already exists." });
+          types[index] = newName;
+          if (!oldName.startsWith(BOOKED_PREFIX)) removeType(`${BOOKED_PREFIX}${oldName}`);
+        } else {
+          if (types.includes(newName)) return response(409, { error: "Shift type already exists." });
+          types.push(newName);
+        }
+        userDb.shiftTypes = ensureBookedShiftTypes(types);
+        await saveUserDb(secretUserId, userDb);
+        return response(200, { shiftTypes: userDb.shiftTypes });
+      }
+
+      if (upperMethod === "POST" && path === "/shift-types/delete") {
+        const name = normalizeShiftType(body?.name);
+        if (!name) return response(400, { error: "name is required." });
+        const userDb = await loadUserDb(secretUserId);
+        const types = ensureBookedShiftTypes(
+          userDb.shiftTypes?.length ? userDb.shiftTypes : clone(DEFAULT_SHIFT_TYPES)
+        );
+        const index = types.indexOf(name);
+        if (index === -1) return response(404, { error: "Shift type not found." });
+        types.splice(index, 1);
+        if (!name.startsWith(BOOKED_PREFIX)) {
+          const bookedIndex = types.indexOf(`${BOOKED_PREFIX}${name}`);
+          if (bookedIndex >= 0) types.splice(bookedIndex, 1);
+        }
+        userDb.shiftTypes = ensureBookedShiftTypes(types);
+        await saveUserDb(secretUserId, userDb);
+        return response(200, { shiftTypes: userDb.shiftTypes });
       }
     }
   }
@@ -1146,6 +1217,8 @@ export const createViteMiddleware = () => {
         normalizedPath.startsWith("/log") ||
         normalizedPath.startsWith("/bot") ||
         normalizedPath.startsWith("/portal-data") ||
+        normalizedPath.startsWith("/portal") ||
+        normalizedPath.startsWith("/update-shift") ||
         normalizedPath.startsWith("/bot-data")
       )
     ) {

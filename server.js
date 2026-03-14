@@ -20,6 +20,8 @@ const apiPrefixes = [
   "/log",
   "/bot",
   "/portal-data",
+  "/portal",
+  "/update-shift",
   "/bot-data"
 ];
 
