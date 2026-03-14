@@ -851,6 +851,18 @@ export const handleApiRequest = async ({ method, path, query = {}, body, headers
     }
   }
 
+  if (upperMethod === "GET" && path === "/data/rows") {
+    const secretProvided =
+      getHeaderValue(headers, "API_SECRET") || getHeaderValue(headers, "X-API-SECRET");
+    if (secretProvided) {
+      const ingestAuth = requireIngestSecret(headers);
+      if (ingestAuth.error) return ingestAuth.error;
+      const ingestUserId = normalizeName(process.env.INGEST_USER_ID) || "ingest-bot";
+      const userDb = await loadUserDb(ingestUserId);
+      return response(200, { rows: userDb.dataRows || [] });
+    }
+  }
+
   const authResult = await requireAuth(headers);
   if (authResult.error) {
     return authResult.error;
